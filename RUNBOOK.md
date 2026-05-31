@@ -71,6 +71,16 @@ marked 12 calls the custom code renderer with positional args `(code, infostring
 ### Stale content after a deploy
 The service worker caches assets. After a deploy, hard-refresh (Cmd+Shift+R), or in dev tools → Application → Service Workers → Unregister, then Application → Clear site data, then reload. The cache name is versioned (`md-editor-vN`); bump it when changing the cached asset list.
 
+## Focus mode & keyboard shortcuts
+
+Focus mode is a distraction-free WYSIWYG overlay. Its writing column is sized to two-thirds of the screen width (`#focus-wysiwyg { width: 66.6667% }` in `index.html`), centered by the overlay.
+
+Toggle focus mode with the toolbar Focus button (expand-corners icon), **Cmd+Shift+F**, or **F11**; exit with **Esc**, the toggle again, or the "✕ Exit Focus" button.
+
+On macOS, plain **F11** is reserved by the OS for "Show Desktop," so it may not reach the app — use **Cmd+Shift+F** (or **fn+F11**, or disable Show Desktop under System Settings → Keyboard → Keyboard Shortcuts → Mission Control).
+
+Other shortcuts: Save `Cmd+S`, New `Cmd+N`, Open `Cmd+O`, Find & Replace `Cmd+F`, zoom `Cmd+ + / - / 0`.
+
 ## Security hardening applied this session
 
 - Fixed two DOM-based XSS sinks: filenames (local and Drive) are now set via `textContent`/`dataset` instead of `innerHTML` interpolation.
