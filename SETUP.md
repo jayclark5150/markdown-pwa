@@ -36,21 +36,27 @@ markdown-pwa/
 
 ---
 
-## Step 2 — Add credentials to app.js
+## Step 2 — Add credentials to config.js
 
-Open `app.js` and replace lines 3-4:
+Copy the template and fill in your values:
 
-```js
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
-const GOOGLE_API_KEY   = 'YOUR_GOOGLE_API_KEY';
+```bash
+cp config.example.js config.js
 ```
 
-With your actual values:
+Then edit `config.js`:
 
 ```js
-const GOOGLE_CLIENT_ID = '123456789-abc.apps.googleusercontent.com';
-const GOOGLE_API_KEY   = 'AIzaSyABC123...';
+window.APP_CONFIG = {
+  GOOGLE_CLIENT_ID: '123456789-abc.apps.googleusercontent.com',
+  GOOGLE_API_KEY:   'AIzaSyABC123...',
+};
 ```
+
+`config.js` is gitignored so your keys are never committed. Note that any
+client-side Google API key is still visible to anyone who loads the app in a
+browser, so lock the key down in Google Cloud Console with HTTP-referrer
+restrictions (limited to your domain) and restrict it to the Google Drive API.
 
 ---
 

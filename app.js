@@ -1,6 +1,8 @@
 // ── Config ────────────────────────────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = '505353054413-reetv1b12vujfavknfg9fuliolavdph6.apps.googleusercontent.com';
-const GOOGLE_API_KEY   = 'AIzaSyCN4TAt_zDXSGZEjv7FNW2Z_zQHHtj-UNE';
+// Credentials live in config.js (gitignored). Copy config.example.js to config.js.
+const APP_CONFIG       = window.APP_CONFIG || {};
+const GOOGLE_CLIENT_ID = APP_CONFIG.GOOGLE_CLIENT_ID || '';
+const GOOGLE_API_KEY   = APP_CONFIG.GOOGLE_API_KEY   || '';
 const SCOPES           = 'https://www.googleapis.com/auth/drive.file';
 const DISCOVERY_DOC    = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 
