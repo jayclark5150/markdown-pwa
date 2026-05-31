@@ -883,6 +883,7 @@ document.addEventListener('keydown', (e) => {
   if (mod && e.key === 's') { e.preventDefault(); performSave(false); }
   if (mod && e.key === 'n') { e.preventDefault(); if (!isDirty || confirm('Discard changes?')) openNewModal(); }
   if (mod && e.key === 'o') { e.preventDefault(); document.getElementById('open-local-btn').click(); }
+  if (mod && e.shiftKey && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); toggleFocusMode(); return; }
   if (mod && e.key === 'f') { e.preventDefault(); openFindBar(); }
   if (mod && (e.key === '=' || e.key === '+')) { e.preventDefault(); zoomLevel = Math.min(ZOOM_MAX, +(zoomLevel + ZOOM_STEP).toFixed(1)); applyZoom(); }
   if (mod && e.key === '-') { e.preventDefault(); zoomLevel = Math.max(ZOOM_MIN, +(zoomLevel - ZOOM_STEP).toFixed(1)); applyZoom(); }
