@@ -166,6 +166,12 @@ function setDriveStatus(state, text) {
   driveStatusTxt.textContent = text;
   toolbarDriveDot.className = state || '';
   if (toolbarDriveTip) toolbarDriveTip.textContent = text || 'Not connected to Drive';
+
+  // Show/hide Drive action buttons based on connection state and file open status
+  const isFileOpen = driveFileId !== null;
+  document.getElementById('drive-saveas-btn').style.display  = state === 'connected' ? 'inline-flex' : 'none';
+  document.getElementById('drive-rename-btn').style.display  = state === 'connected' && isFileOpen ? 'inline-flex' : 'none';
+  document.getElementById('drive-delete-btn').style.display  = state === 'connected' && isFileOpen ? 'inline-flex' : 'none';
 }
 
 // ── Zoom controls ─────────────────────────────────────────────────────────────
@@ -597,6 +603,69 @@ async function loadDriveFile(fileId, fileName) {
 
 document.getElementById('drive-save-btn').addEventListener('click', () => performSave(false));
 
+// Save As
+document.getElementById('drive-saveas-btn').addEventListener('click', () => {
+  document.getElementById('drive-action-title').textContent = 'Save As';
+  document.getElementById('drive-action-input').value = driveFileName || currentTitle;
+  document.getElementById('drive-action-input').placeholder = 'New filename';
+  document.getElementById('drive-action-modal').classList.add('open');
+  document.getElementById('drive-action-input').focus();
+
+  document.getElementById('drive-action-confirm').onclick = async () => {
+    const newName = document.getElementById('drive-action-input').value.trim();
+    if (!newName) {
+      showToast('Please enter a filename');
+      return;
+    }
+
+    // Add .md extension if not present
+    const filename = newName.endsWith('.md') ? newName : `${newName}.md`;
+
+    document.getElementById('drive-action-modal').classList.remove('open');
+    await saveAsNewFile(filename);
+  };
+});
+
+// Rename
+document.getElementById('drive-rename-btn').addEventListener('click', () => {
+  document.getElementById('drive-action-title').textContent = 'Rename File';
+  document.getElementById('drive-action-input').value = driveFileName || currentTitle;
+  document.getElementById('drive-action-input').placeholder = 'New filename';
+  document.getElementById('drive-action-modal').classList.add('open');
+  document.getElementById('drive-action-input').focus();
+
+  document.getElementById('drive-action-confirm').onclick = async () => {
+    const newName = document.getElementById('drive-action-input').value.trim();
+    if (!newName) {
+      showToast('Please enter a filename');
+      return;
+    }
+
+    // Add .md extension if not present
+    const filename = newName.endsWith('.md') ? newName : `${newName}.md`;
+
+    document.getElementById('drive-action-modal').classList.remove('open');
+    await renameDriveFile(filename);
+  };
+});
+
+// Delete
+document.getElementById('drive-delete-btn').addEventListener('click', deleteDriveFile);
+
+// Modal cancel button
+document.getElementById('drive-action-cancel').addEventListener('click', () => {
+  document.getElementById('drive-action-modal').classList.remove('open');
+});
+
+// Allow Enter key in modal
+document.getElementById('drive-action-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    document.getElementById('drive-action-confirm').click();
+  } else if (e.key === 'Escape') {
+    document.getElementById('drive-action-modal').classList.remove('open');
+  }
+});
+
 async function saveToDrive(content, silent = false) {
   try {
     setDriveStatus('saving', 'Saving…');
@@ -632,6 +701,109 @@ async function saveNewToDrive(content, filename, silent = false) {
   } catch (e) {
     setDriveStatus('error', 'Save failed');
     showToast('Drive save failed: ' + e.message);
+  }
+}
+
+// ── Google Drive: Save As, Rename, Delete ─────────────────────────────────────
+
+async function saveAsNewFile(newName) {
+  if (!editor.value) {
+    showToast('Nothing to save');
+    return;
+  }
+
+  try {
+    setDriveStatus('saving', 'Saving as…');
+
+    const boundary = '-------314159265358979323846';
+    const metadata = JSON.stringify({ name: newName, mimeType: 'text/markdown' });
+    const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: text/markdown\r\n\r\n${editor.value}\r\n--${boundary}--`;
+
+    const res = await gapi.client.request({
+      path: '/upload/drive/v3/files',
+      method: 'POST',
+      params: { uploadType: 'multipart' },
+      headers: { 'Content-Type': `multipart/related; boundary="${boundary}"` },
+      body
+    });
+
+    // Update state to point to the new file
+    driveFileId   = res.result.id;
+    driveFileName = newName;
+    currentTitle  = newName;
+    isDirty       = false;
+
+    driveFileInfo.textContent = `☁ ${newName}`;
+    saveStatus.textContent    = 'Saved to Drive';
+    setDriveStatus('connected', 'Drive connected');
+    showToast(`✓ Saved as "${newName}" to Google Drive`);
+
+    fetchDriveFiles(); // Refresh the file list
+  } catch (e) {
+    setDriveStatus('error', 'Save As failed');
+    showToast('Drive Save As failed: ' + e.message);
+  }
+}
+
+async function renameDriveFile(newName) {
+  if (!driveFileId) {
+    showToast('No file open');
+    return;
+  }
+
+  try {
+    setDriveStatus('saving', 'Renaming…');
+
+    // Update file metadata on Drive
+    await gapi.client.drive.files.update({
+      fileId: driveFileId,
+      resource: { name: newName }
+    });
+
+    driveFileName = newName;
+    currentTitle  = newName;
+    driveFileInfo.textContent = `☁ ${newName}`;
+
+    setDriveStatus('connected', 'Drive connected');
+    showToast(`✓ File renamed to "${newName}"`);
+    fetchDriveFiles(); // Refresh the file list
+  } catch (e) {
+    setDriveStatus('error', 'Rename failed');
+    showToast('Drive rename failed: ' + e.message);
+  }
+}
+
+async function deleteDriveFile() {
+  if (!driveFileId) {
+    showToast('No file open');
+    return;
+  }
+
+  const confirmed = confirm(`Delete "${driveFileName}" from Google Drive? This cannot be undone.`);
+  if (!confirmed) return;
+
+  try {
+    setDriveStatus('saving', 'Deleting…');
+    await gapi.client.drive.files.delete({ fileId: driveFileId });
+
+    // Reset state
+    driveFileId   = null;
+    driveFileName = null;
+    currentTitle  = 'New Document';
+    isDirty       = false;
+    editor.value  = '';
+
+    driveFileInfo.textContent = '';
+    saveStatus.textContent    = '';
+    setDriveStatus('connected', 'Drive connected');
+    showToast('✓ File deleted from Google Drive');
+
+    renderPreview();
+    updateStats();
+    fetchDriveFiles(); // Refresh the file list
+  } catch (e) {
+    setDriveStatus('error', 'Delete failed');
+    showToast('Drive delete failed: ' + e.message);
   }
 }
 

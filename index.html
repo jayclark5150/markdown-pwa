@@ -756,6 +756,24 @@
           <span class="tw-tip">Save to Drive</span>
         </div>
         <div class="tw">
+          <button class="tb-btn" id="drive-saveas-btn" style="display:none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          </button>
+          <span class="tw-tip">Save As</span>
+        </div>
+        <div class="tw">
+          <button class="tb-btn" id="drive-rename-btn" style="display:none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19H4v-3L16.5 3.5z"/></svg>
+          </button>
+          <span class="tw-tip">Rename</span>
+        </div>
+        <div class="tw">
+          <button class="tb-btn danger" id="drive-delete-btn" style="display:none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          </button>
+          <span class="tw-tip">Delete</span>
+        </div>
+        <div class="tw">
           <button class="tb-btn danger" id="drive-signout-btn" style="display:none">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.75C2 1.784 2.784 1 3.75 1h2.5a.75.75 0 0 1 0 1.5h-2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h2.5a.75.75 0 0 1 0 1.5h-2.5A1.75 1.75 0 0 1 2 13.25Zm6.56 4.5h4.69l-1.22-1.22a.75.75 0 1 1 1.06-1.06l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.749.749 0 0 1-1.06-1.06l1.22-1.22H8.56a.75.75 0 0 1 0-1.5Z"/></svg>
           </button>
@@ -872,6 +890,18 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" id="new-modal-cancel">Cancel</button>
       <button class="btn btn-primary"   id="new-modal-ok">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Drive Save As / Rename Modal -->
+<div id="drive-action-modal" class="modal-backdrop">
+  <div class="modal" style="width:380px">
+    <div class="modal-title" id="drive-action-title">Save As</div>
+    <input type="text" class="modal-input" id="drive-action-input" placeholder="New filename" spellcheck="false"/>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="drive-action-cancel">Cancel</button>
+      <button class="btn btn-primary" id="drive-action-confirm">Confirm</button>
     </div>
   </div>
 </div>
