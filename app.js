@@ -414,15 +414,27 @@ async function initGoogleApi() {
   });
 }
 
-function initTokenClient() {
+// Create the GSI token client once. This is synchronous config only — safe to
+// call inside a click handler so the OAuth popup opens within the user gesture.
+function ensureTokenClient() {
+  if (tokenClient) return tokenClient;
+  if (!window.google || !google.accounts || !google.accounts.oauth2) return null;
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: SCOPES,
     callback: async (response) => {
       if (response.error) { setDriveStatus('error', 'Auth failed'); showToast('Google sign-in failed: ' + response.error); return; }
-      onDriveConnected();
+      try {
+        await initGoogleApi();                                  // load Drive client lib now that we have a token
+        gapi.client.setToken({ access_token: response.access_token });
+        onDriveConnected();
+      } catch (e) {
+        setDriveStatus('error', 'Auth failed');
+        showToast('Drive setup failed: ' + e.message);
+      }
     },
   });
+  return tokenClient;
 }
 
 function onDriveConnected() {
@@ -437,13 +449,16 @@ function onDriveConnected() {
   fetchDriveFiles();
 }
 
-document.getElementById('drive-signin-btn').addEventListener('click', async () => {
+document.getElementById('drive-signin-btn').addEventListener('click', () => {
   if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.includes('YOUR_')) {
-    showToast('⚠ Add your Google Client ID in app.js first', 4000); return;
+    showToast('⚠ Add your Google credentials in config.js first', 4000); return;
   }
-  await initGoogleApi();
-  initTokenClient();
-  tokenClient.requestAccessToken({ prompt: 'consent' });
+  const client = ensureTokenClient();
+  if (!client) {
+    showToast('Google sign-in library not loaded yet — check your connection and retry', 4000); return;
+  }
+  // Called synchronously within the click so the browser allows the popup.
+  client.requestAccessToken({ prompt: 'consent' });
 });
 
 document.getElementById('drive-signout-btn').addEventListener('click', () => {
