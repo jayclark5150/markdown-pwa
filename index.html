@@ -190,9 +190,9 @@
     /* Tooltip wrapper */
     .tw { position: relative; display: inline-flex; }
     .tw-tip {
-      position: absolute;
+      position: fixed;
       top: 50%;
-      left: calc(100% + 10px);
+      left: calc(100% + 62px);
       transform: translateY(-50%) translateX(4px);
       background: var(--bg3);
       color: var(--text);
@@ -206,7 +206,7 @@
       opacity: 0;
       transition: opacity 120ms ease, transform 120ms ease;
       transition-delay: 0ms;
-      z-index: 500;
+      z-index: 9998;
       box-shadow: 0 4px 16px rgba(0,0,0,.5);
     }
     .tw-tip::before {
