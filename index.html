@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <!-- Content Security Policy: restricts where scripts/styles/connections may load from.
+       Google sign-in (apis.google.com / accounts.google.com / *.googleapis.com) is explicitly
+       allowlisted. If Drive auth ever breaks after a Google-side change, widen the google.com
+       entries here rather than removing the policy. -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    script-src 'self' https://cdn.jsdelivr.net https://apis.google.com https://accounts.google.com;
+    style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' data: https:;
+    connect-src 'self' https://*.googleapis.com https://accounts.google.com;
+    frame-src https://accounts.google.com https://content.googleapis.com;
+    manifest-src 'self';
+    worker-src 'self';
+    base-uri 'self';
+    form-action 'none';
+  "/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#0d1117"/>
+  <meta name="description" content="Markdown Editor with Google Drive sync"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="MD Editor"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <title>Markdown Editor</title>
+
+  <!-- Third-party libs: version-pinned with Subresource Integrity (SRI) so a compromised
+       CDN cannot serve altered code. crossorigin="anonymous" is required for SRI to apply. -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"
+          integrity="sha256-Ffq85bZYmLMrA/XtJen4kacprUwNbYdxEKd0SqhHqJQ="
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"
+          integrity="sha256-wIRQlqfEpnQfNirFBslMHH0n3GA7zBv2Slh/dvLb46E="
+          crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/styles/github.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/highlight.min.js"
+          integrity="sha256-g3pvpbDHNrUrveKythkPMF2j/J7UFoHbUyFQcFe1yEY="
+          crossorigin="anonymous"></script>
+  <!-- Turndown: HTML → Markdown on focus mode exit -->
+  <script src="https://cdn.jsdelivr.net/npm/turndown@7.2.0/dist/turndown.js"
+          integrity="sha256-rjYF6werkgotGBAIrOaS7FYPps1n0uKR93y8XEMizTg="
+          crossorigin="anonymous"></script>
+  <!-- Google libraries are continuously updated by Google and do not support SRI;
+       they are constrained via the script-src allowlist in the CSP above. -->
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script src="https://accounts.google.com/gsi/client"></script>
+  <!-- Inter typeface -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --bg:       #ffffff;
+      --bg2:      #f5f5f5;
+      --bg3:      #ebebeb;
+      --border:   #e0e0e0;
+      --text:     #000000;
+      --text2:    #000000;
+      --accent:   #3a6ecc;
+      --accent2:  #2a5bb8;
+      --green:    #1a7f37;
+      --red:      #cf222e;
+      --yellow:   #9a6700;
+      --font:     'Inter', 'Segoe UI', system-ui, sans-serif;
+      --tb-w:     52px;
+      --sb-w:     230px;
+      --status-h: 28px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Install banner ── */
+    #install-banner {
+      display: none;
+      background: linear-gradient(135deg, #1f6feb, #388bfd);
+      color: #fff;
+      padding: 8px 16px;
+      font-size: 12px;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    #install-banner.show { display: flex; }
+    #install-banner button { background: rgba(255,255,255,.2); border: none; color: #fff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    #install-banner button:hover { background: rgba(255,255,255,.3); }
+    #install-close { margin-left: auto; background: none !important; padding: 2px 6px !important; }
+
+    /* ── Find & Replace Bar ── */
+    #find-replace-bar {
+      display: none;
+      padding: 6px 14px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    #find-replace-bar.visible { display: flex; }
+    #find-replace-bar input {
+      background: var(--bg3);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 13px;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      width: 180px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    #find-replace-bar input:focus { border-color: var(--accent); }
+    #find-replace-bar input.no-match { border-color: var(--red); }
+    .fr-label  { font-size: 12px; color: var(--text2); min-width: 48px; }
+    #match-info { font-size: 12px; color: var(--text2); min-width: 64px; }
+    .fr-btn-group { display: flex; gap: 4px; }
+    #find-replace-bar button {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background .12s, color .12s;
+    }
+    #find-replace-bar button:hover { background: var(--border); color: var(--text); }
+    .fr-divider { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
+
+    /* ── Main content row ── */
+    #main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      overflow: hidden;
+    }
+
+    /* ── Vertical Toolbar ── */
+    #toolbar {
+      width: var(--tb-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      user-select: none;
+    }
+    #toolbar-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 10px 0;
+      flex: 1;
+      width: 100%;
+    }
+    .tb-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      width: 100%;
+    }
+    .tb-divider {
+      width: 28px;
+      height: 1px;
+      background: var(--border);
+      margin: 6px auto;
+      flex-shrink: 0;
+    }
+
+    /* Tooltip wrapper */
+    .tw { position: relative; display: inline-flex; }
+    .tw-tip {
+      position: absolute;
+      top: 50%;
+      left: calc(100% + 10px);
+      transform: translateY(-50%) translateX(4px);
+      background: var(--bg3);
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 8px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 120ms ease, transform 120ms ease;
+      transition-delay: 0ms;
+      z-index: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,.5);
+    }
+    .tw-tip::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -4px;
+      transform: translateY(-50%) rotate(45deg);
+      width: 7px; height: 7px;
+      background: var(--bg3);
+      border-left: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .tw:hover .tw-tip {
+      opacity: 1;
+      transform: translateY(-50%) translateX(0);
+      transition-delay: 380ms;
+    }
+
+    /* Toolbar buttons */
+    .tb-btn {
+      background: transparent;
+      border: none;
+      color: var(--text2);
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, color .15s;
+      flex-shrink: 0;
+      padding: 0;
+    }
+    .tb-btn:hover  { background: var(--bg3); color: var(--text); }
+    .tb-btn:active { transform: translateY(0.5px); }
+    .tb-btn.active { background: rgba(88,166,255,.15); color: var(--accent); }
+    .tb-btn.danger { color: var(--red); }
+    .tb-btn.danger:hover { background: rgba(248,81,73,.12); }
+
+    /* Drive status dot */
+    #toolbar-footer {
+      margin-top: auto;
+      padding: 8px 0 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #toolbar-drive-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--text2);
+      transition: background .2s;
+      cursor: default;
+    }
+    #toolbar-drive-dot.connected { background: var(--green); }
+    #toolbar-drive-dot.saving    { background: var(--yellow); }
+    #toolbar-drive-dot.error     { background: var(--red); }
+
+    /* Hidden legacy element kept for JS compat */
+    #drive-status { display: none; }
+
+    /* ── File Sidebar ── */
+    #file-sidebar {
+      width: 0;
+      overflow: hidden;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s ease;
+    }
+    #file-sidebar.open { width: var(--sb-w); }
+
+    #sidebar-header {
+      display: flex;
+      align-items: center;
+      padding: 7px 8px 7px 10px;
+      border-bottom: 1px solid var(--border);
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    #sidebar-folder-name {
+      font-size: 11px;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #sidebar-pick-btn {
+      background: transparent;
+      border: none;
+      color: var(--text2);
+      font-size: 15px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      cursor: pointer;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: color .14s, background .14s;
+    }
+    #sidebar-pick-btn:hover { color: var(--text); background: var(--bg3); }
+
+    #file-tree {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+      font-size: 13px;
+      font-family: var(--font);
+    }
+    .tree-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      cursor: pointer;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      border-radius: 4px;
+      margin: 0 4px;
+      transition: background .1s;
+      user-select: none;
+    }
+    .tree-item:hover  { background: var(--bg3); }
+    .tree-item.active { background: rgba(88,166,255,.12); color: var(--accent); }
+    .tree-icon { font-size: 12px; color: var(--text2); flex-shrink: 0; }
+    .tree-name { overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-empty {
+      padding: 20px 14px;
+      font-size: 12px;
+      color: var(--text2);
+      text-align: center;
+      line-height: 1.7;
+    }
+
+    /* ── Editor pane ── */
+    #editor-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      border-right: 1px solid var(--border);
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    #line-numbers {
+      width: 44px;
+      padding: 20px 6px 20px 0;
+      text-align: right;
+      font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text2);
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+      user-select: none;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    #editor {
+      flex: 1;
+      background: #ffffff;
+      color: #000000;
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 20px 24px;
+      font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 14px;
+      line-height: 1.7;
+      tab-size: 2;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      overflow-x: hidden;
+    }
+    #editor::placeholder { color: #999999; }
+
+    /* ── Preview wrapper & zoom controls ── */
+    #preview-wrapper {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    #preview-pane {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 32px;
+      background: var(--bg);
+    }
+
+    #preview-inner {
+      transform-origin: top left;
+    }
+
+    #preview-pane h1,h2,h3,h4,h5,h6 { color: var(--text); margin: 1.5em 0 .5em; line-height: 1.3; }
+    #preview-pane h1 { font-size: 1.8em; border-bottom: 1px solid var(--border); padding-bottom: .3em; }
+    #preview-pane h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: .3em; }
+    #preview-pane p  { color: var(--text); line-height: 1.7; margin-bottom: 1em; }
+    #preview-pane a  { color: var(--accent); }
+    #preview-pane code { background: #f0f0f0; color: #c0392b; padding: 2px 6px; border-radius: 4px; font-family: 'Cascadia Code', monospace; font-size: .9em; }
+    #preview-pane pre { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin-bottom: 1em; }
+    #preview-pane pre code { background: none; color: inherit; padding: 0; }
+    #preview-pane blockquote { border-left: 3px solid var(--accent); color: var(--text2); padding: 4px 16px; margin: 0 0 1em; }
+    #preview-pane table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
+    #preview-pane th,td { border: 1px solid var(--border); padding: 8px 12px; }
+    #preview-pane th { background: var(--bg2); }
+    #preview-pane tr:nth-child(even) { background: var(--bg2); }
+    #preview-pane img { max-width: 100%; border-radius: 6px; }
+    #preview-pane hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+    #preview-pane ul,ol { padding-left: 1.5em; margin-bottom: 1em; }
+    #preview-pane li { margin-bottom: .25em; line-height: 1.7; }
+
+    /* Zoom controls overlay */
+    .zoom-controls {
+      position: absolute;
+      bottom: 10px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      z-index: 10;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 5px;
+    }
+    .zoom-controls button {
+      background: transparent;
+      border: none;
+      color: var(--text2);
+      width: 24px; height: 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 15px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .12s, color .12s;
+      padding: 0;
+    }
+    .zoom-controls button:hover { background: var(--bg3); color: var(--text); }
+    #zoom-pct {
+      font-size: 11px;
+      color: var(--text2);
+      min-width: 36px;
+      text-align: center;
+      padding: 0 3px;
+    }
+
+    /* ── Status bar ── */
+    #statusbar {
+      height: var(--status-h);
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--text2);
+      flex-shrink: 0;
+    }
+    #statusbar span { white-space: nowrap; }
+
+    #tb-title {
+      font-size: 11px;
+      color: var(--text2);
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: background .15s;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 220px;
+    }
+    #tb-title:hover { background: var(--bg3); color: var(--text); }
+
+    #title-input {
+      display: none;
+      background: var(--bg3);
+      border: 1px solid var(--accent);
+      color: var(--text);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      width: 200px;
+    }
+    #title-input:focus { outline: none; }
+
+    /* ── Modals ── */
+    .modal-backdrop { display: none; position: fixed; inset: 0; z-index: 900; background: rgba(0,0,0,.6); align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 560px; max-width: 95vw; max-height: 80vh; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 24px 64px rgba(0,0,0,.6); }
+    .modal-title { font-size: 16px; font-weight: 600; color: var(--text); }
+    .modal-search { padding: 8px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; width: 100%; }
+    .modal-search:focus { outline: none; border-color: var(--accent); }
+    .file-list { flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; }
+    .file-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background .1s; font-size: 13px; }
+    .file-item:last-child { border-bottom: none; }
+    .file-item:hover { background: var(--bg3); }
+    .file-item.selected { background: rgba(88,166,255,.1); }
+    .file-icon { font-size: 16px; flex-shrink: 0; }
+    .file-name { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-date { color: var(--text2); font-size: 11px; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; }
+    .btn { padding: 7px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .btn-secondary { background: var(--bg3); color: var(--text); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-primary { background: var(--accent2); color: #fff; }
+    .btn-primary:hover { background: var(--accent); }
+    .modal-input { padding: 8px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px; width: 100%; }
+    .modal-input:focus { outline: none; border-color: var(--accent); }
+    .modal-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; display: block; }
+
+    /* ── Toast ── */
+    #toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .2s; white-space: nowrap; }
+    #toast.show { opacity: 1; }
+
+    /* ── Scrollbars ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
+
+    /* ── Focus Mode Overlay ── */
+    #focus-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      z-index: 800;
+      overflow-y: auto;
+    }
+
+    body.focus-mode #focus-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* WYSIWYG contenteditable column */
+    #focus-wysiwyg {
+      width: 100%;
+      max-width: 640px;
+      padding: 80px 40px 50vh;
+      font-family: var(--font);
+      font-size: 19px;
+      line-height: 1.85;
+      color: #000000;
+      outline: none;
+      min-height: 100vh;
+      caret-color: #3a6ecc;
+    }
+
+    /* iA Writer typography inside the WYSIWYG editor */
+    #focus-wysiwyg h1, #focus-wysiwyg h2,
+    #focus-wysiwyg h3, #focus-wysiwyg h4 {
+      font-family: var(--font);
+      font-weight: 700;
+      color: #000000;
+      margin: 1.6em 0 .4em;
+    }
+    #focus-wysiwyg h1 { font-size: 1.9em; }
+    #focus-wysiwyg h2 { font-size: 1.45em; }
+    #focus-wysiwyg h3 { font-size: 1.15em; }
+    #focus-wysiwyg p  { margin-bottom: 1.3em; }
+    #focus-wysiwyg a  { color: #3a6ecc; }
+    #focus-wysiwyg blockquote {
+      border-left: 3px solid #ccc;
+      color: #444;
+      font-style: italic;
+      padding: 2px 18px;
+      margin: 0 0 1.3em;
+    }
+    #focus-wysiwyg code {
+      background: #f2f2f2;
+      color: #c0392b;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: .84em;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+    #focus-wysiwyg pre {
+      background: #f6f8fa;
+      border: 1px solid #e4e4e4;
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+      margin-bottom: 1.3em;
+      font-size: .82em;
+    }
+    #focus-wysiwyg pre code { background: none; color: inherit; padding: 0; font-size: 1em; }
+    #focus-wysiwyg ul, #focus-wysiwyg ol { padding-left: 1.6em; margin-bottom: 1.3em; }
+    #focus-wysiwyg li { margin-bottom: .35em; }
+    #focus-wysiwyg hr { border: none; border-top: 1px solid #ddd; margin: 2.5em auto; width: 60px; }
+    #focus-wysiwyg img { max-width: 100%; border-radius: 6px; }
+    #focus-wysiwyg table { border-collapse: collapse; width: 100%; margin-bottom: 1.3em; }
+    #focus-wysiwyg th, #focus-wysiwyg td { border: 1px solid #e0e0e0; padding: 8px 12px; }
+    #focus-wysiwyg th { background: #f5f5f5; }
+
+    /* Gradient vignette — top and bottom fade */
+    #focus-overlay::before,
+    #focus-overlay::after {
+      content: '';
+      position: fixed;
+      left: 0; right: 0;
+      height: 100px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #focus-overlay::before {
+      top: 0;
+      background: linear-gradient(to bottom, #ffffff 0%, transparent 100%);
+    }
+    #focus-overlay::after {
+      bottom: 0;
+      background: linear-gradient(to top, #ffffff 0%, transparent 100%);
+    }
+
+    /* Exit focus mode button */
+    #focus-exit-btn {
+      display: none;
+      position: fixed;
+      top: 14px;
+      right: 16px;
+      z-index: 9999;
+      background: rgba(0,0,0,.05);
+      border: 1px solid #e0e0e0;
+      color: #000000;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: background .15s;
+    }
+    #focus-exit-btn:hover { background: rgba(0,0,0,.1); }
+    body.focus-mode #focus-exit-btn { display: block; }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      #preview-wrapper { display: none; }
+      #editor-pane { border-right: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Install banner -->
+<div id="install-banner">
+  <span>📱 Install Markdown Editor as an app for offline use</span>
+  <button id="install-btn">Install</button>
+  <button id="install-close">✕</button>
+</div>
+
+<!-- Find & Replace Bar -->
+<div id="find-replace-bar">
+  <span class="fr-label">Find:</span>
+  <input type="text" id="find-input" placeholder="Search…" autocomplete="off" spellcheck="false"/>
+  <span id="match-info"></span>
+  <div class="fr-btn-group">
+    <button id="find-prev-btn" title="Previous (Shift+Enter)">↑</button>
+    <button id="find-next-btn" title="Next (Enter)">↓</button>
+  </div>
+  <div class="fr-divider"></div>
+  <span class="fr-label">Replace:</span>
+  <input type="text" id="replace-input" placeholder="Replace with…" autocomplete="off" spellcheck="false"/>
+  <div class="fr-btn-group">
+    <button id="replace-btn">Replace</button>
+    <button id="replace-all-btn">All</button>
+  </div>
+  <button id="find-close-btn" style="margin-left:8px;">✕</button>
+</div>
+
+<!-- Main content -->
+<div id="main-content">
+
+  <!-- Vertical icon toolbar -->
+  <div id="toolbar">
+    <div id="toolbar-body">
+
+      <!-- Sidebar toggle -->
+      <div class="tb-group">
+        <div class="tw">
+          <button class="tb-btn" id="sidebar-toggle-btn" title="Toggle File Browser">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+          </button>
+          <span class="tw-tip">File Browser</span>
+        </div>
+      </div>
+
+      <div class="tb-divider"></div>
+
+      <!-- File actions -->
+      <div class="tb-group">
+        <div class="tw">
+          <button class="tb-btn" id="new-btn">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"/></svg>
+          </button>
+          <span class="tw-tip">New (Ctrl+N)</span>
+        </div>
+        <div class="tw">
+          <button class="tb-btn" id="open-local-btn">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1Z"/></svg>
+          </button>
+          <span class="tw-tip">Open (Ctrl+O)</span>
+        </div>
+        <input type="file" id="file-input" accept=".md,.txt,.markdown" style="display:none"/>
+        <div class="tw">
+          <button class="tb-btn" id="save-local-btn">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-10.5C1 .784 1.784 0 2.75 0h7.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v7.836A1.75 1.75 0 0 1 13.25 14Zm0-12.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25V4.664a.25.25 0 0 0-.073-.177l-2.914-2.914a.25.25 0 0 0-.177-.073ZM8 11.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3ZM6.75 4h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1 0-1.5Z"/></svg>
+          </button>
+          <span class="tw-tip">Save (Ctrl+S)</span>
+        </div>
+      </div>
+
+      <div class="tb-divider"></div>
+
+      <!-- Drive actions -->
+      <div class="tb-group">
+        <div class="tw">
+          <button class="tb-btn" id="drive-signin-btn">
+            <svg width="16" height="16" viewBox="0 0 87.3 78"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
+          </button>
+          <span class="tw-tip">Connect Google Drive</span>
+        </div>
+        <div class="tw">
+          <button class="tb-btn" id="drive-open-btn" style="display:none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          <span class="tw-tip">Open from Drive</span>
+        </div>
+        <div class="tw">
+          <button class="tb-btn" id="drive-save-btn" style="display:none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </button>
+          <span class="tw-tip">Save to Drive</span>
+        </div>
+        <div class="tw">
+          <button class="tb-btn danger" id="drive-signout-btn" style="display:none">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.75C2 1.784 2.784 1 3.75 1h2.5a.75.75 0 0 1 0 1.5h-2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h2.5a.75.75 0 0 1 0 1.5h-2.5A1.75 1.75 0 0 1 2 13.25Zm6.56 4.5h4.69l-1.22-1.22a.75.75 0 1 1 1.06-1.06l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.749.749 0 0 1-1.06-1.06l1.22-1.22H8.56a.75.75 0 0 1 0-1.5Z"/></svg>
+          </button>
+          <span class="tw-tip">Sign out of Drive</span>
+        </div>
+      </div>
+
+      <div class="tb-divider"></div>
+
+      <!-- Find -->
+      <div class="tb-group">
+        <div class="tw">
+          <button class="tb-btn" id="find-btn">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/></svg>
+          </button>
+          <span class="tw-tip">Find &amp; Replace (Ctrl+F)</span>
+        </div>
+      </div>
+
+      <div class="tb-divider"></div>
+
+      <!-- Focus mode -->
+      <div class="tb-group">
+        <div class="tw">
+          <button class="tb-btn" id="focus-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          </button>
+          <span class="tw-tip">Focus Mode (F11)</span>
+        </div>
+      </div>
+
+      <!-- Drive status dot at bottom -->
+      <div id="toolbar-footer">
+        <div class="tw">
+          <div id="toolbar-drive-dot"></div>
+          <span class="tw-tip" id="toolbar-drive-tip">Not connected to Drive</span>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /#toolbar -->
+
+  <!-- Hidden legacy element for JS compat -->
+  <div id="drive-status" style="display:none">
+    <span class="drive-dot"></span>
+    <span id="drive-status-text">Not connected</span>
+  </div>
+
+  <!-- File Sidebar -->
+  <div id="file-sidebar">
+    <div id="sidebar-header">
+      <span id="sidebar-folder-name">Files</span>
+      <button id="sidebar-pick-btn" title="Open folder">📁</button>
+    </div>
+    <div id="file-tree">
+      <div class="sidebar-empty">No folder open.<br>Click 📁 to choose one.</div>
+    </div>
+  </div>
+
+  <!-- Editor: line numbers + textarea -->
+  <div id="editor-pane">
+    <div id="line-numbers">1</div>
+    <textarea id="editor" spellcheck="false" placeholder="Start typing your markdown…&#10;&#10;# Hello World"></textarea>
+  </div>
+
+  <!-- Preview wrapper: content + zoom overlay -->
+  <div id="preview-wrapper">
+    <div id="preview-pane"><div id="preview-inner"></div></div>
+    <div class="zoom-controls">
+      <button id="zoom-out-btn" title="Zoom Out (Ctrl+-)">−</button>
+      <span id="zoom-pct">100%</span>
+      <button id="zoom-in-btn"  title="Zoom In (Ctrl++)">+</button>
+      <button id="zoom-reset-btn" title="Reset Zoom">⊙</button>
+    </div>
+  </div>
+
+</div><!-- /#main-content -->
+
+<!-- Status bar -->
+<div id="statusbar">
+  <span id="word-count">Words: 0</span>
+  <span id="char-count">Chars: 0</span>
+  <span id="cursor-pos">Ln 1, Col 1</span>
+  <span style="flex:1"></span>
+  <span id="tb-title">New Document</span>
+  <input id="title-input" type="text" placeholder="filename.md" spellcheck="false"/>
+  <span id="save-status"></span>
+  <span id="drive-file-info"></span>
+</div>
+
+<!-- Drive file picker modal -->
+<div id="drive-modal" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title">📂 Open from Google Drive</div>
+    <input type="text" class="modal-search" id="drive-search" placeholder="Search files…"/>
+    <div class="file-list" id="drive-file-list">
+      <div class="file-item" style="color:var(--text2);cursor:default">Loading files…</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="drive-modal-cancel">Cancel</button>
+      <button class="btn btn-primary"   id="drive-modal-open">Open</button>
+    </div>
+  </div>
+</div>
+
+<!-- New file modal -->
+<div id="new-modal" class="modal-backdrop">
+  <div class="modal" style="width:380px">
+    <div class="modal-title">New Document</div>
+    <div>
+      <label class="modal-label">Filename</label>
+      <input type="text" class="modal-input" id="new-filename" placeholder="my-document.md" spellcheck="false"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="new-modal-cancel">Cancel</button>
+      <button class="btn btn-primary"   id="new-modal-ok">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Focus Mode Overlay (WYSIWYG) -->
+<div id="focus-overlay">
+  <div id="focus-wysiwyg" contenteditable="true" spellcheck="true"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Focus mode exit button (only visible in focus mode) -->
+<button id="focus-exit-btn">✕ Exit Focus</button>
+
+<script src="app.js"></script>
+</body>
+</html>
