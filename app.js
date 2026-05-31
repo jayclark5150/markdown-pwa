@@ -406,12 +406,24 @@ function createNewDoc() {
 
 // ── Google Drive ──────────────────────────────────────────────────────────────
 async function initGoogleApi() {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     gapi.load('client', async () => {
-      await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] });
-      resolve();
+      try {
+        await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] });
+        resolve();
+      } catch (e) {
+        reject(e);
+      }
     });
   });
+}
+
+// gapi/Google errors are nested objects; pull out something human-readable.
+function gErr(e) {
+  if (!e) return 'unknown error';
+  return (e.result && e.result.error && e.result.error.message) ||
+         e.details || e.message ||
+         (typeof e === 'string' ? e : JSON.stringify(e));
 }
 
 // Create the GSI token client once. This is synchronous config only — safe to
@@ -429,8 +441,9 @@ function ensureTokenClient() {
         gapi.client.setToken({ access_token: response.access_token });
         onDriveConnected();
       } catch (e) {
-        setDriveStatus('error', 'Auth failed');
-        showToast('Drive setup failed: ' + e.message);
+        console.error('Drive init failed:', e);
+        setDriveStatus('error', 'Setup failed');
+        showToast('Drive setup failed: ' + gErr(e), 5000);
       }
     },
   });
