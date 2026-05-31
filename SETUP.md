@@ -81,8 +81,8 @@ npm install -g serve
 ```
 
 Run it:
-```powershell
-cd "C:\Users\Jay Clark\Documents\markdown-pwa"
+```bash
+cd path/to/markdown-pwa
 serve .
 ```
 
@@ -98,12 +98,12 @@ Open http://localhost:3000 in Chrome or Edge.
    git init
    git add .
    git commit -m "Initial PWA"
-   git remote add origin https://github.com/jayclark5150/markdown-pwa.git
+   git remote add origin https://github.com/yourusername/markdown-pwa.git
    git push -u origin main
    ```
 3. Go to repo Settings → Pages → Source: **main branch**
 4. Your app will be live at:
-   `https://jayclark5150.github.io/markdown-pwa`
+   `https://yourusername.github.io/markdown-pwa`
 5. Add that URL to your Google OAuth authorized origins
 
 ---

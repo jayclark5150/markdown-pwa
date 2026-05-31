@@ -37,7 +37,20 @@ const toast          = document.getElementById('toast');
 if (window.marked && window.hljs) {
   marked.use({
     renderer: {
-      code({ text, lang }) {
+      // marked 12 calls this with positional args (code, infostring); other
+      // versions pass a token object ({ text, lang }). Handle both, and never
+      // pass undefined to highlight.js.
+      code(codeOrToken, infostring) {
+        let text, lang;
+        if (codeOrToken && typeof codeOrToken === 'object') {
+          text = codeOrToken.text;
+          lang = codeOrToken.lang;
+        } else {
+          text = codeOrToken;
+          lang = infostring;
+        }
+        text = (text == null) ? '' : String(text);
+        if (lang) lang = lang.trim().split(/\s+/)[0];
         const language = (lang && hljs.getLanguage(lang)) ? lang : 'plaintext';
         const highlighted = hljs.highlight(text, { language }).value;
         return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
@@ -60,7 +73,11 @@ if (window.DOMPurify) {
 // ── Render preview ────────────────────────────────────────────────────────────
 function renderPreview() {
   if (window.marked && window.DOMPurify) {
-    previewInner.innerHTML = DOMPurify.sanitize(marked.parse(editor.value));
+    try {
+      previewInner.innerHTML = DOMPurify.sanitize(marked.parse(editor.value || ''));
+    } catch (e) {
+      console.error('Preview render failed:', e);
+    }
   }
 }
 
