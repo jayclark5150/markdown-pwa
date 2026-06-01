@@ -22,14 +22,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate config.js from secret
+      - name: Generate config.js from secrets
         env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           cat > config.js <<EOF
-          // Generated at deploy time from the GOOGLE_API_KEY repo secret.
+          // Generated at deploy time from GitHub Actions secrets.
           window.APP_CONFIG = {
-            GOOGLE_CLIENT_ID: '505353054413-reetv1b12vujfavknfg9fuliolavdph6.apps.googleusercontent.com',
+            GOOGLE_CLIENT_ID: '${GOOGLE_CLIENT_ID}',
             GOOGLE_API_KEY:   '${GOOGLE_API_KEY}',
           };
           EOF
