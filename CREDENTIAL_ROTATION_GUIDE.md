@@ -50,15 +50,30 @@
 3. A popup will show your new API Key
 4. **COPY the API Key** (you'll need it in the next step)
 5. Click **Edit API Key** to restrict it:
+
+### Application Restrictions (Website Restrictions)
    - Under "Application restrictions":
-     - Select **HTTP referrers (web sites)**
+     - Select **Websites**
+   - Under "Website restrictions":
+     - Click **Add**
      - Add your domain(s):
        - `http://localhost:8000/*` (for local testing)
        - `https://yourdomain.com/*` (for production)
+     - **Important:** Include the `/*` wildcard at the end to allow all paths
+     - Example for GitHub Pages: `https://jayclark5150.github.io/*`
+
+### API Restrictions
    - Under "API restrictions":
      - Select **Restrict key**
      - Choose **Google Drive API** only
    - Click **Save**
+
+### Complete Example
+For a GitHub Pages deployment, your website restrictions should look like:
+```
+http://localhost:8000/*
+https://jayclark5150.github.io/*
+```
 
 ---
 
@@ -196,10 +211,46 @@ When done testing, press `Ctrl+C` in the terminal to stop the server.
 
 ---
 
+## Troubleshooting
+
+### "Access Denied" or 403 Errors on GitHub Pages
+
+If you get "access denied" or "Failed to load resource: 403" errors when testing on GitHub Pages:
+
+**Problem:** Website restrictions on the API key are blocking your domain.
+
+**Solution:**
+1. Go to **APIs & Services** > **Credentials**
+2. Click on your API Key
+3. Under "Website restrictions", verify you have:
+   - `https://yourdomain.github.io/*` (with the wildcard `/*`)
+4. If the list is blank, the API key will accept requests from any website (less secure but works)
+5. Save and hard refresh your browser: `Cmd+Shift+R`
+
+**Key Points:**
+- ✅ Must use `https://` for GitHub Pages (not `http://`)
+- ✅ Must include the `/*` wildcard at the end
+- ✅ Can have multiple domains (localhost + GitHub Pages)
+- ❌ Do NOT include the subdirectory path (e.g., `/markdown-pwa/`)
+
+### OAuth Redirect URI Errors
+
+If you get redirect URI errors:
+
+1. Go to **APIs & Services** > **Credentials**
+2. Click on your OAuth 2.0 Client ID
+3. Check **Authorized redirect URIs** includes:
+   - `https://yourdomain.github.io/markdown-pwa/` (with trailing slash and subdirectory)
+4. Check **Authorized JavaScript origins** includes:
+   - `https://yourdomain.github.io` (without subdirectory)
+
+---
+
 ## Next Steps
 
 After rotation is complete:
-1. Verify the PWA works with new credentials
+1. Verify the PWA works with new credentials locally and on GitHub Pages
 2. Implement environment-based credential injection (see Implementation Guide)
 3. Update deploy workflow to use GitHub secrets
 4. Test deployment with new credentials
+5. Monitor Google Cloud for any unusual API usage
