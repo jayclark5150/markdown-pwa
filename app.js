@@ -62,6 +62,14 @@ let selectedDriveFile = null;
 let dirHandle         = null;   // File System Access API directory handle
 let activeTreeHandle  = null;   // currently open file handle in sidebar
 
+// ── OAuth Token Management ─────────────────────────────────────────────────────
+const TOKEN_TIMEOUT_MS = 60 * 60 * 1000;      // 1 hour
+const TOKEN_WARNING_MS = 5 * 60 * 1000;       // 5 minutes before timeout
+let tokenAcquisitionTime = null;               // When token was acquired
+let tokenTimeoutTimer = null;                  // Main timeout timer
+let tokenWarningTimer = null;                  // Warning timer (5 min before)
+let tokenWarningShown = false;                 // Track if warning already shown
+
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const editor         = document.getElementById('editor');
 const previewInner   = document.getElementById('preview-inner');
@@ -316,7 +324,11 @@ async function openFileFromSidebar(handle, name, itemEl) {
 // ── Auto-save ─────────────────────────────────────────────────────────────────
 function scheduleAutoSave() {
   clearTimeout(autoSaveTimer);
-  if (!driveConnected && !localFileHandle) return;
+  const isConnectedToSomething =
+    driveConnected ||
+    localFileHandle ||
+    (window.onedriveClient && window.onedriveClient.getFileId());
+  if (!isConnectedToSomething) return;
   saveStatus.textContent = 'Unsaved…';
   autoSaveTimer = setTimeout(async () => { await performSave(true); }, 2000);
 }
@@ -324,9 +336,17 @@ function scheduleAutoSave() {
 async function performSave(silent = false) {
   if (!isDirty) return;
   const content = editor.value;
-  if (driveConnected && driveFileId)   { await saveToDrive(content, silent); }
+
+  // OneDrive (if file open there)
+  if (window.onedriveClient && window.onedriveClient.getFileId()) {
+    await saveToOnedrive(content, silent);
+  }
+  // Google Drive
+  else if (driveConnected && driveFileId)   { await saveToDrive(content, silent); }
   else if (driveConnected)             { await saveNewToDrive(content, currentTitle, silent); }
+  // Local file
   else if (localFileHandle)            { await saveToLocalHandle(content, silent); }
+  // Fallback: download
   else                                 { downloadFile(content, currentTitle); }
 }
 
@@ -446,6 +466,7 @@ function createNewDoc() {
   activeTreeHandle = null;
   driveFileId      = null;
   driveFileName    = null;
+  if (window.onedriveClient) window.onedriveClient.clearFile();
   isDirty          = false;
   saveStatus.textContent    = '';
   driveFileInfo.textContent = driveConnected ? '☁ Drive (new)' : '';
@@ -498,6 +519,104 @@ function ensureTokenClient() {
   return tokenClient;
 }
 
+// ── OAuth Token Timeout Management ────────────────────────────────────────────
+function startTokenTimeout() {
+  // Record when token was acquired
+  tokenAcquisitionTime = Date.now();
+  tokenWarningShown = false;
+
+  // Clear any existing timers
+  if (tokenTimeoutTimer) clearTimeout(tokenTimeoutTimer);
+  if (tokenWarningTimer) clearTimeout(tokenWarningTimer);
+
+  // Set warning timer (fires 5 minutes before timeout)
+  const warningDelay = TOKEN_TIMEOUT_MS - TOKEN_WARNING_MS;
+  tokenWarningTimer = setTimeout(() => {
+    if (!tokenWarningShown && driveConnected) {
+      tokenWarningShown = true;
+      showToast('⏰ Your session will expire in 5 minutes. Save your work!', 8000);
+      console.warn('OAuth token expiring in 5 minutes');
+    }
+  }, warningDelay);
+
+  // Set logout timer (fires after 1 hour)
+  tokenTimeoutTimer = setTimeout(() => {
+    if (driveConnected) {
+      console.warn('OAuth token expired - auto-logout triggered');
+      performTokenTimeout();
+    }
+  }, TOKEN_TIMEOUT_MS);
+
+  // Update session display
+  updateSessionDisplay();
+}
+
+function performTokenTimeout() {
+  // Clear timers
+  if (tokenTimeoutTimer) clearTimeout(tokenTimeoutTimer);
+  if (tokenWarningTimer) clearTimeout(tokenWarningTimer);
+
+  // Sign out user
+  const token = gapi.client.getToken();
+  if (token) {
+    try {
+      google.accounts.oauth2.revoke(token.access_token);
+    } catch (e) {
+      console.error('Token revocation error:', e);
+    }
+  }
+
+  // Reset state
+  gapi.client.setToken('');
+  driveConnected = false;
+  driveFileId    = null;
+  driveFileName  = null;
+  tokenAcquisitionTime = null;
+
+  // Reset UI
+  setDriveStatus('', 'Not connected to Drive');
+  document.getElementById('drive-signin-btn').style.display  = '';
+  document.getElementById('drive-open-btn').style.display    = 'none';
+  document.getElementById('drive-save-btn').style.display    = 'none';
+  document.getElementById('drive-saveas-btn').style.display  = 'none';
+  document.getElementById('drive-rename-btn').style.display  = 'none';
+  document.getElementById('drive-delete-btn').style.display  = 'none';
+  document.getElementById('drive-signout-btn').style.display = 'none';
+  driveFileInfo.textContent = '';
+
+  // Notify user
+  showToast('Session expired. Please sign in again.', 5000);
+  console.log('OAuth session ended - user must re-authenticate');
+}
+
+function updateSessionDisplay() {
+  if (!tokenAcquisitionTime || !driveConnected) return;
+
+  const elapsed = Date.now() - tokenAcquisitionTime;
+  const remaining = Math.max(0, TOKEN_TIMEOUT_MS - elapsed);
+  const minutes = Math.ceil(remaining / 60000);
+
+  // Optional: Update status bar to show session time remaining
+  // You can uncomment this if you want to display session time
+  // const sessionInfo = document.getElementById('session-info');
+  // if (sessionInfo) sessionInfo.textContent = `Session: ${minutes}min`;
+}
+
+// Refresh token timeout on user activity
+function resetTokenTimeout() {
+  if (driveConnected && tokenAcquisitionTime) {
+    // Only reset if token is about to expire (less than 10 minutes left)
+    const elapsed = Date.now() - tokenAcquisitionTime;
+    const remaining = TOKEN_TIMEOUT_MS - elapsed;
+
+    if (remaining < 10 * 60 * 1000) {
+      // Token is expiring soon, restart the timer
+      startTokenTimeout();
+      console.log('Token timeout reset due to user activity');
+    }
+  }
+}
+
 function onDriveConnected() {
   driveConnected = true;
   setDriveStatus('connected', 'Drive connected');
@@ -507,6 +626,10 @@ function onDriveConnected() {
   document.getElementById('drive-signout-btn').style.display = '';
   if (!driveFileId) driveFileInfo.textContent = '☁ Drive (new)';
   showToast('✓ Connected to Google Drive');
+
+  // Start token timeout timer
+  startTokenTimeout();
+
   fetchDriveFiles();
 }
 
@@ -523,6 +646,13 @@ document.getElementById('drive-signin-btn').addEventListener('click', () => {
 });
 
 document.getElementById('drive-signout-btn').addEventListener('click', () => {
+  // Clear token timers
+  if (tokenTimeoutTimer) clearTimeout(tokenTimeoutTimer);
+  if (tokenWarningTimer) clearTimeout(tokenWarningTimer);
+  tokenAcquisitionTime = null;
+  tokenWarningShown = false;
+
+  // Revoke and clear token
   const token = gapi.client.getToken();
   if (token) google.accounts.oauth2.revoke(token.access_token);
   gapi.client.setToken('');
@@ -1133,6 +1263,235 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
+// ── OneDrive Integration ──────────────────────────────────────────────────────
+
+/**
+ * Handle "Connect to OneDrive" button click
+ */
+document.getElementById('onedrive-signin-btn').addEventListener('click', async () => {
+  try {
+    await window.onedriveClient.signIn();
+  } catch (error) {
+    console.error('OneDrive sign-in error:', error);
+  }
+});
+
+/**
+ * Handle "Open from OneDrive" button click
+ */
+document.getElementById('onedrive-open-btn').addEventListener('click', handleOnedriveOpen);
+
+/**
+ * Handle "Save as" button click
+ */
+document.getElementById('onedrive-saveas-btn').addEventListener('click', handleOnedriveSaveAs);
+
+/**
+ * Handle "Rename" button click
+ */
+document.getElementById('onedrive-rename-btn').addEventListener('click', handleOnedriveRename);
+
+/**
+ * Handle "Delete" button click
+ */
+document.getElementById('onedrive-delete-btn').addEventListener('click', handleOnedriveDelete);
+
+/**
+ * Handle "Sign out of OneDrive" button click
+ */
+document.getElementById('onedrive-signout-btn').addEventListener('click', handleOnedriveSignOut);
+
+/**
+ * Sign out from OneDrive
+ */
+async function handleOnedriveSignOut() {
+  if (!confirm('Sign out of OneDrive?')) return;
+  try {
+    await window.onedriveClient.signOut();
+    showToast('Signed out of OneDrive');
+  } catch (error) {
+    showToast('Sign-out failed: ' + error.message, 5000);
+    console.error('OneDrive sign-out error:', error);
+  }
+}
+
+/**
+ * Handle "Open from OneDrive" button click
+ */
+async function handleOnedriveOpen() {
+  if (!window.onedriveClient.isConnected()) {
+    showToast('Not connected to OneDrive');
+    return;
+  }
+
+  try {
+    const picker = new window.OnedrivePicker();
+    const selected = await picker.pickFile();
+
+    if (!selected) return; // User cancelled
+
+    // Read file content
+    showToast('Opening ' + selected.name + '...');
+    const content = await window.onedriveClient.readFile(selected.id);
+
+    // Load into editor
+    editor.value = content;
+    isDirty = false;
+    renderPreview();
+    updateStats();
+    updateCursor();
+    updateLineNumbers();
+
+    // Clear any local/Drive file handles
+    localFileHandle = null;
+    dirHandle = null;
+    driveFileId = null;
+
+    // Set up for OneDrive auto-save
+    window.onedriveClient.setFileId(selected.id, selected.name);
+
+    currentTitle = selected.name.replace(/\.md$/, '');
+    tbTitle.textContent = currentTitle;
+
+    showToast('Opened: ' + selected.name);
+  } catch (error) {
+    showToast('Failed to open file: ' + error.message, 5000);
+    console.error('OneDrive open failed:', error);
+  }
+}
+
+/**
+ * Handle "Save to OneDrive as..." button click
+ */
+async function handleOnedriveSaveAs() {
+  if (!window.onedriveClient.isConnected()) {
+    showToast('Not connected to OneDrive');
+    return;
+  }
+
+  try {
+    const picker = new window.OnedrivePicker();
+    const saveLocation = await picker.pickSaveLocation(currentTitle + '.md');
+
+    if (!saveLocation) return; // User cancelled
+
+    showToast('Saving to OneDrive...');
+
+    // Create file
+    const created = await window.onedriveClient.createFile(
+      saveLocation.filename,
+      editor.value,
+      saveLocation.parentFolderId
+    );
+
+    // Set up for auto-save
+    window.onedriveClient.setFileId(created.id, created.name);
+
+    // Clear Drive connection if switching providers
+    driveFileId = null;
+    localFileHandle = null;
+
+    currentTitle = created.name.replace(/\.md$/, '');
+    tbTitle.textContent = currentTitle;
+    isDirty = false;
+
+    showToast(`Saved to OneDrive: ${created.name}`);
+  } catch (error) {
+    showToast('Failed to save file: ' + error.message, 5000);
+    console.error('OneDrive save failed:', error);
+  }
+}
+
+/**
+ * Handle "Rename" button click for OneDrive file
+ */
+async function handleOnedriveRename() {
+  const fileId = window.onedriveClient.getFileId();
+  const currentName = window.onedriveClient.getFileName();
+
+  if (!fileId || !currentName) {
+    showToast('No OneDrive file open');
+    return;
+  }
+
+  const newName = prompt('New filename:', currentName);
+  if (!newName) return;
+
+  try {
+    showToast('Renaming...');
+    const renamed = await window.onedriveClient.renameFile(fileId, newName);
+    window.onedriveClient.setFileId(renamed.id, renamed.name);
+    currentTitle = renamed.name.replace(/\.md$/, '');
+    tbTitle.textContent = currentTitle;
+    showToast(`Renamed to: ${renamed.name}`);
+  } catch (error) {
+    showToast('Failed to rename: ' + error.message, 5000);
+    console.error('OneDrive rename failed:', error);
+  }
+}
+
+/**
+ * Handle "Delete" button click for OneDrive file
+ */
+async function handleOnedriveDelete() {
+  const fileId = window.onedriveClient.getFileId();
+  const currentName = window.onedriveClient.getFileName();
+
+  if (!fileId || !currentName) {
+    showToast('No OneDrive file open');
+    return;
+  }
+
+  if (!confirm(`Delete "${currentName}" from OneDrive?`)) {
+    return;
+  }
+
+  try {
+    showToast('Deleting...');
+    await window.onedriveClient.deleteFile(fileId);
+
+    // Clear editor
+    editor.value = '';
+    isDirty = false;
+    renderPreview();
+    updateStats();
+    updateCursor();
+    updateLineNumbers();
+    currentTitle = 'New Document';
+    tbTitle.textContent = currentTitle;
+    window.onedriveClient.clearFile();
+
+    showToast('File deleted from OneDrive');
+  } catch (error) {
+    showToast('Failed to delete: ' + error.message, 5000);
+    console.error('OneDrive delete failed:', error);
+  }
+}
+
+/**
+ * Auto-save to OneDrive (called by existing auto-save logic)
+ */
+async function saveToOnedrive(content, silent = false) {
+  const fileId = window.onedriveClient.getFileId();
+
+  if (!fileId) {
+    // New file, not yet saved to OneDrive
+    return;
+  }
+
+  try {
+    const updated = await window.onedriveClient.updateFile(fileId, content);
+    if (!silent) {
+      showToast(`Saved to OneDrive: ${updated.name}`);
+    }
+    return true;
+  } catch (error) {
+    showToast(`OneDrive save failed: ${error.message}`, 5000);
+    console.error('OneDrive auto-save error:', error);
+    return false;
+  }
+}
+
 // ── Service worker ────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(console.error);
@@ -1144,3 +1503,15 @@ updateStats();
 updateCursor();
 updateLineNumbers();
 applyZoom();
+
+// Initialize OneDrive if credentials are configured
+setTimeout(async () => {
+  if (window.onedriveClient && window.onedriveClient.init) {
+    try {
+      await window.onedriveClient.init();
+      console.debug('OneDrive initialized successfully');
+    } catch (error) {
+      console.warn('OneDrive initialization skipped or failed:', error);
+    }
+  }
+}, 100);

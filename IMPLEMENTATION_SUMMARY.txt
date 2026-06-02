@@ -1,0 +1,117 @@
+ONEDRIVE INTEGRATION IMPLEMENTATION PLAN
+========================================
+
+STATUS: Complete detailed plan created in ONEDRIVE_IMPLEMENTATION_PLAN.md
+
+FOUNDATION: The following files already exist and are production-ready:
+  - onedrive-client.js (575 lines) - MSAL auth, Graph API operations
+  - onedrive-picker.js (442 lines) - File picker UI
+  - config.example.js - Has Microsoft credential template
+  - ONEDRIVE_SETUP_STEPS.md - High-level setup guide
+  - ONEDRIVE_INTEGRATION.md - Architecture documentation
+
+PHASES: The implementation consists of 4 sequential phases
+
+PHASE 1: CODE INTEGRATION (index.html + app.js)
+  Duration: 2-3 hours
+  Files to modify: 2
+    1. index.html
+       - Update CSP (15 lines) to allow MSAL + Graph API
+       - Add MSAL script tag (7 lines)
+       - Add OneDrive toolbar buttons (60+ lines with SVG icons)
+       - Add status display (3 lines)
+       - Add file picker container (1 line)
+       - Update script loading order (3 script tags)
+
+    2. app.js
+       - Update validateCredentials() to handle both Google + Microsoft (10 lines)
+       - Add OneDrive state variables (3 lines)
+       - Add DOM references (5 lines)
+       - Add setOnedriveStatus() function (15 lines)
+       - Initialize MSAL on page load (5 lines)
+       - Add 7 handler functions (120+ lines):
+         * handleOnedriveConnect()
+         * handleOnedriveOpen()
+         * loadOnedriveFile()
+         * handleOnedriveSaveAs()
+         * saveOnedriveNew()
+         * saveToOnedrive()
+         * handleOnedriveRename()
+         * handleOnedriveDelete()
+         * handleOnedriveSignout()
+       - Add event listeners for all 7 buttons (10 lines)
+       - Update auto-save logic (3 lines)
+       - Update newDocument() reset function (5 lines)
+
+  Total additions: ~250 lines of JavaScript/HTML
+
+PHASE 2: AZURE SETUP (manual, ~15 minutes)
+  Steps:
+    1. Create Azure app registration
+    2. Copy Client ID and Tenant ID
+    3. Add production redirect URI
+    4. (Optional) Request API permissions
+
+PHASE 3: TESTING (local dev, ~30 minutes)
+  Prerequisites:
+    - Node.js + npx
+    - Static server (serve package)
+    - Microsoft account
+
+  Test scenarios (7 total):
+    1. Connection - Click Connect, OAuth popup, sign in
+    2. Create file - Save to OneDrive as, enter name
+    3. Open file - Click Open, select file, verify content loads
+    4. Auto-save - Edit file, wait 2 seconds, check status
+    5. Rename - Click Rename, enter new name
+    6. Delete - Click Delete, confirm removal
+    7. Sign out - Click Disconnect, verify buttons hide
+
+  Regression checks:
+    - Google Drive still works
+    - No CSP violations in console
+    - MSAL initializes without errors
+
+PHASE 4: DEPLOYMENT (GitHub Pages, ~10 minutes)
+  Steps:
+    1. Update .github/workflows/deploy.yml
+       - Add MICROSOFT_CLIENT_ID, MICROSOFT_TENANT_ID, MICROSOFT_REDIRECT_URI to config generation
+       - ~10 lines changed
+
+    2. Add GitHub Secrets
+       - Settings → Secrets and variables → Actions
+       - Add 3 secrets:
+         MICROSOFT_CLIENT_ID
+         MICROSOFT_TENANT_ID
+         MICROSOFT_REDIRECT_URI
+
+    3. Commit and push
+    4. Watch GitHub Actions workflow complete
+    5. Test on production URL
+
+TOTAL TIME ESTIMATE: 4-5 hours including testing and all phases
+
+CRITICAL FILES FOR IMPLEMENTATION:
+  - /sessions/stoic-confident-bardeen/mnt/markdown-pwa-main/index.html
+  - /sessions/stoic-confident-bardeen/mnt/markdown-pwa-main/app.js
+  - /sessions/stoic-confident-bardeen/mnt/markdown-pwa-main/.github/workflows/deploy.yml
+
+KEY DECISIONS:
+  - Parallel integration (not abstracted) - OneDrive and Drive coexist independently
+  - Users can use either service, or both simultaneously
+  - Simpler to maintain, easier to debug, clearer user experience
+
+VERIFICATION CHECKLIST: 16 items in ONEDRIVE_IMPLEMENTATION_PLAN.md
+
+NEXT STEPS:
+  1. Follow ONEDRIVE_IMPLEMENTATION_PLAN.md section by section
+  2. Test each phase before moving to next
+  3. Use verification checklist to track progress
+  4. After deployment: update README.md, monitor for errors
+
+ARCHITECTURE NOTES:
+  - OneDrive client exposes window.onedriveClient API
+  - OnedrivePicker class provides file picker UI
+  - MSAL handles authentication and token refresh
+  - Microsoft Graph API handles file operations
+  - Both Google Drive and OneDrive can coexist without conflicts

@@ -1,7 +1,8 @@
 {
   "name": "Markdown Editor",
   "short_name": "MD Editor",
-  "description": "A fast markdown editor with Google Drive sync",
+  "description": "Fast markdown editor with Google Drive & OneDrive sync",
+  "version": "1.2.0",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0d1117",

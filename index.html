@@ -9,11 +9,11 @@
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'none';
     script-src 'self' https://cdn.jsdelivr.net https://apis.google.com https://accounts.google.com;
-    style-src 'self' https://cdn.jsdelivr.net https://fonts.googleapis.com;
+    style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
     img-src 'self' data: https:;
-    connect-src 'self' https://*.googleapis.com https://accounts.google.com;
-    frame-src https://accounts.google.com https://content.googleapis.com;
+    connect-src 'self' https://*.googleapis.com https://accounts.google.com https://graph.microsoft.com https://login.microsoftonline.com;
+    frame-src https://accounts.google.com https://content.googleapis.com https://login.microsoftonline.com;
     manifest-src 'self';
     worker-src 'self';
     base-uri 'self';
@@ -52,6 +52,9 @@
        they are constrained via the script-src allowlist in the CSP above. -->
   <script src="https://apis.google.com/js/api.js"></script>
   <script src="https://accounts.google.com/gsi/client"></script>
+  <!-- Microsoft Authentication Library (MSAL) for OneDrive OAuth -->
+  <!-- Local copy due to CDN network restrictions -->
+  <script src="lib/msal-browser.min.js"></script>
   <!-- Inter typeface -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
@@ -98,7 +101,6 @@
           <button class="tb-btn" id="sidebar-toggle-btn" title="Toggle File Browser">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
           </button>
-          <span class="tw-tip">File Browser</span>
         </div>
       </div>
 
@@ -110,20 +112,17 @@
           <button class="tb-btn" id="new-btn">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"/></svg>
           </button>
-          <span class="tw-tip">New (Ctrl+N)</span>
         </div>
         <div class="tw">
           <button class="tb-btn" id="open-local-btn">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1Z"/></svg>
           </button>
-          <span class="tw-tip">Open (Ctrl+O)</span>
         </div>
         <input type="file" id="file-input" accept=".md,.txt,.markdown" style="display:none"/>
         <div class="tw">
           <button class="tb-btn" id="save-local-btn">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-10.5C1 .784 1.784 0 2.75 0h7.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v7.836A1.75 1.75 0 0 1 13.25 14Zm0-12.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25V4.664a.25.25 0 0 0-.073-.177l-2.914-2.914a.25.25 0 0 0-.177-.073ZM8 11.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3ZM6.75 4h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1 0-1.5Z"/></svg>
           </button>
-          <span class="tw-tip">Save (Ctrl+S)</span>
         </div>
       </div>
 
@@ -135,43 +134,72 @@
           <button class="tb-btn" id="drive-signin-btn">
             <svg width="16" height="16" viewBox="0 0 87.3 78"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
           </button>
-          <span class="tw-tip">Connect Google Drive</span>
         </div>
         <div class="tw">
           <button class="tb-btn" id="drive-open-btn" style="display:none">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </button>
-          <span class="tw-tip">Open from Drive</span>
         </div>
         <div class="tw">
           <button class="tb-btn" id="drive-save-btn" style="display:none">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           </button>
-          <span class="tw-tip">Save to Drive</span>
         </div>
         <div class="tw">
           <button class="tb-btn" id="drive-saveas-btn" style="display:none">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           </button>
-          <span class="tw-tip">Save As</span>
         </div>
         <div class="tw">
           <button class="tb-btn" id="drive-rename-btn" style="display:none">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19H4v-3L16.5 3.5z"/></svg>
           </button>
-          <span class="tw-tip">Rename</span>
         </div>
         <div class="tw">
           <button class="tb-btn danger" id="drive-delete-btn" style="display:none">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
           </button>
-          <span class="tw-tip">Delete</span>
         </div>
         <div class="tw">
           <button class="tb-btn danger" id="drive-signout-btn" style="display:none">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.75C2 1.784 2.784 1 3.75 1h2.5a.75.75 0 0 1 0 1.5h-2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h2.5a.75.75 0 0 1 0 1.5h-2.5A1.75 1.75 0 0 1 2 13.25Zm6.56 4.5h4.69l-1.22-1.22a.75.75 0 1 1 1.06-1.06l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.749.749 0 0 1-1.06-1.06l1.22-1.22H8.56a.75.75 0 0 1 0-1.5Z"/></svg>
           </button>
-          <span class="tw-tip">Sign out of Drive</span>
+        </div>
+      </div>
+
+      <div class="tb-divider"></div>
+
+      <!-- OneDrive actions (parallel to Google Drive) -->
+      <div class="tb-group">
+        <div class="tw">
+          <button class="tb-btn" id="onedrive-signin-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.3 8.3c0-.1-.1-.2-.1-.3 0-.1 0-.2-.1-.3 0-.1-.1-.2-.2-.3 0-.1-.1-.2-.2-.2 0 0 0-.1-.1-.1L12.5.4c-.3-.2-.8-.2-1.1 0L.9 7.2c-.1 0-.1.1-.1.1-.1.1-.1.2-.2.2 0 .1-.1.2-.2.3 0 .1 0 .2-.1.3 0 .1 0 .2-.1.3 0 .3 0 .6.1.9v9.4c0 .9.7 1.6 1.6 1.6h2.9v-5.8c0-1.1.9-2 2-2h6c1.1 0 2 .9 2 2v5.8h2.9c.9 0 1.6-.7 1.6-1.6V9.2c.1-.3.1-.6.1-.9ZM12 4.2l5.7 3.6v4.3H6.3V7.8L12 4.2Zm0 15c-1.1 0-2-.9-2-2v-5.8h4v5.8c0 1.1-.9 2-2 2Z"/></svg>
+          </button>
+        </div>
+        <div class="tw">
+          <button class="tb-btn" id="onedrive-open-btn" style="display:none" onclick="handleOnedriveOpen()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+        </div>
+        <div class="tw">
+          <button class="tb-btn" id="onedrive-saveas-btn" style="display:none" onclick="handleOnedriveSaveAs()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          </button>
+        </div>
+        <div class="tw">
+          <button class="tb-btn" id="onedrive-rename-btn" style="display:none" onclick="handleOnedriveRename()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19H4v-3L16.5 3.5z"/></svg>
+          </button>
+        </div>
+        <div class="tw">
+          <button class="tb-btn danger" id="onedrive-delete-btn" style="display:none" onclick="handleOnedriveDelete()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          </button>
+        </div>
+        <div class="tw">
+          <button class="tb-btn danger" id="onedrive-signout-btn" style="display:none" onclick="handleOnedriveSignOut()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.75C2 1.784 2.784 1 3.75 1h2.5a.75.75 0 0 1 0 1.5h-2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h2.5a.75.75 0 0 1 0 1.5h-2.5A1.75 1.75 0 0 1 2 13.25Zm6.56 4.5h4.69l-1.22-1.22a.75.75 0 1 1 1.06-1.06l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.749.749 0 0 1-1.06-1.06l1.22-1.22H8.56a.75.75 0 0 1 0-1.5Z"/></svg>
+          </button>
         </div>
       </div>
 
@@ -183,7 +211,6 @@
           <button class="tb-btn" id="find-btn">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/></svg>
           </button>
-          <span class="tw-tip">Find &amp; Replace (Ctrl+F)</span>
         </div>
       </div>
 
@@ -195,7 +222,6 @@
           <button class="tb-btn" id="focus-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           </button>
-          <span class="tw-tip">Focus Mode (F11)</span>
         </div>
       </div>
 
@@ -256,6 +282,7 @@
   <input id="title-input" type="text" placeholder="filename.md" spellcheck="false"/>
   <span id="save-status"></span>
   <span id="drive-file-info"></span>
+  <span id="onedrive-file-info" style="margin-left: 2rem;"></span>
 </div>
 
 <!-- Drive file picker modal -->
@@ -312,6 +339,9 @@
 <button id="focus-exit-btn">✕ Exit Focus</button>
 
 <script src="config.js"></script>
+<!-- OneDrive integration -->
+<script src="onedrive-client.js"></script>
+<script src="onedrive-picker.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

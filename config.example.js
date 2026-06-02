@@ -33,6 +33,10 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 window.APP_CONFIG = {
+  // ═════════════════════════════════════════════════════════════════════════════
+  // GOOGLE DRIVE
+  // ═════════════════════════════════════════════════════════════════════════════
+
   // OAuth 2.0 Client ID - obtained from Google Cloud Console
   // Format: NUMBERS-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com
   // ⚠️  NEVER commit the real value to git
@@ -45,15 +49,58 @@ window.APP_CONFIG = {
   // - HTTP referrer: https://yourdomain.com/* and http://localhost:8000/*
   // - API: Google Drive API only
   GOOGLE_API_KEY: 'PLACEHOLDER_API_KEY',
+
+  // ═════════════════════════════════════════════════════════════════════════════
+  // MICROSOFT ONEDRIVE (Optional)
+  // ═════════════════════════════════════════════════════════════════════════════
+  //
+  // To enable OneDrive support, fill in these values from your Azure app registration.
+  // See ONEDRIVE_SETUP_STEPS.md for detailed setup instructions.
+  //
+  // If these values are empty, OneDrive functionality is disabled and the UI
+  // elements for OneDrive will not be shown.
+  //
+
+  // Azure App Registration Client ID (Application ID)
+  // Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  // Obtain from: Azure Portal > App registrations > Your app > Overview
+  // ⚠️  NEVER commit the real value to git
+  MICROSOFT_CLIENT_ID: 'PLACEHOLDER_MICROSOFT_CLIENT_ID',
+
+  // Azure Tenant ID
+  // Use 'common' for personal Microsoft accounts (recommended)
+  // Or use your organization's tenant ID for work/school accounts
+  // Obtain from: Azure Portal > App registrations > Your app > Overview
+  MICROSOFT_TENANT_ID: 'common',
+
+  // Redirect URI - must match exactly what's registered in Azure Portal
+  // For local development: 'http://localhost:3000/' (include trailing slash)
+  // For production: 'https://yourdomain.com/' (HTTPS required, include trailing slash)
+  // ⚠️  NEVER commit non-localhost values to git; use GitHub Secrets for deployment
+  MICROSOFT_REDIRECT_URI: 'http://localhost:3000/',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Quick Start
+// Quick Start - Google Drive
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. cp config.example.js config.js
 // 2. Visit: https://console.cloud.google.com/apis/credentials
 // 3. Copy your OAuth Client ID and API Key
-// 4. Paste them into config.js (replace PLACEHOLDER_*)
-// 5. Start the server: python3 -m http.server 8000
-// 6. Open: http://localhost:8000
+// 4. Paste them into config.js (replace GOOGLE_PLACEHOLDER_* values)
+// 5. Start the server: npx serve . --port 3000
+// 6. Open: http://localhost:3000
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Quick Start - Microsoft OneDrive (Optional)
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. Already completed step 1 above? Go to next step
+// 2. Visit: https://portal.azure.com
+// 3. Create a new app registration in Azure Active Directory
+// 4. Copy your Client ID and Tenant ID from the Overview page
+// 5. Set Redirect URI to: http://localhost:3000/
+// 6. Paste them into config.js (replace MICROSOFT_PLACEHOLDER_* values)
+// 7. Restart your server and test OneDrive connectivity
+//
+// For more details, see ONEDRIVE_SETUP_STEPS.md
 // ─────────────────────────────────────────────────────────────────────────────

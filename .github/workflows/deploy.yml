@@ -26,12 +26,18 @@ jobs:
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          MICROSOFT_TENANT_ID: ${{ secrets.MICROSOFT_TENANT_ID }}
+          MICROSOFT_REDIRECT_URI: ${{ secrets.MICROSOFT_REDIRECT_URI }}
         run: |
           cat > config.js <<EOF
           // Generated at deploy time from GitHub Actions secrets.
           window.APP_CONFIG = {
             GOOGLE_CLIENT_ID: '${GOOGLE_CLIENT_ID}',
             GOOGLE_API_KEY:   '${GOOGLE_API_KEY}',
+            MICROSOFT_CLIENT_ID: '${MICROSOFT_CLIENT_ID}',
+            MICROSOFT_TENANT_ID: '${MICROSOFT_TENANT_ID}',
+            MICROSOFT_REDIRECT_URI: '${MICROSOFT_REDIRECT_URI}',
           };
           EOF
 
