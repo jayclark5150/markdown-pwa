@@ -1,6 +1,6 @@
 # Markdown PWA
 
-A fast, offline-capable Markdown editor that runs entirely in the browser, with live preview and optional Google Drive sync. Installable as a Progressive Web App.
+A fast, offline-capable Markdown editor that runs entirely in the browser, with live preview and optional Google Drive & OneDrive sync. Installable as a Progressive Web App.
 
 ## Features
 
