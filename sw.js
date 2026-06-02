@@ -13,7 +13,10 @@ const ASSETS = [
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(cache => {
+      // Try to add all assets, but don't fail if some fail (they'll be fetched on demand)
+      return Promise.allSettled(ASSETS.map(url => cache.add(url))).then(() => self.skipWaiting());
+    })
   );
 });
 
