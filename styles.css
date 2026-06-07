@@ -376,7 +376,23 @@ body {
 #preview-pane p  { color: var(--text); line-height: 1.7; margin-bottom: 1em; }
 #preview-pane a  { color: var(--accent); }
 #preview-pane code { background: #f0f0f0; color: #c0392b; padding: 2px 6px; border-radius: 4px; font-family: 'Cascadia Code', monospace; font-size: .9em; }
-#preview-pane pre { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin-bottom: 1em; }
+#preview-pane pre { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin-bottom: 1em; position: relative; }
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: var(--text2);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  line-height: 1;
+}
+#preview-pane pre:hover .copy-btn { opacity: 1; }
+.copy-btn:hover { color: var(--accent); }
 #preview-pane pre code { background: none; color: inherit; padding: 0; }
 #preview-pane blockquote { border-left: 3px solid var(--accent); color: var(--text2); padding: 4px 16px; margin: 0 0 1em; }
 #preview-pane table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
