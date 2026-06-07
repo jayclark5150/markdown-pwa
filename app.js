@@ -963,6 +963,16 @@ window.addEventListener('beforeunload', (e) => {
   });
 })();
 
+// ── Line numbers toggle ───────────────────────────────────────────────────────
+(function () {
+  const btn = document.getElementById('line-numbers-btn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const hidden = document.body.classList.toggle('no-line-numbers');
+    btn.classList.toggle('active', !hidden);
+  });
+})();
+
 // ── Resizable divider ─────────────────────────────────────────────────────────
 (function () {
   const divider      = document.getElementById('divider');

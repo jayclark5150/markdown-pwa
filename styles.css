@@ -335,6 +335,8 @@ body.toolbar-hidden #toolbar-toggle { border-right: 1px solid var(--border); }
 }
 #divider:hover, #divider.dragging { background: var(--accent); }
 
+body.no-line-numbers #line-numbers { display: none; }
+
 #line-numbers {
   width: 44px;
   padding: 20px 6px 20px 0;
