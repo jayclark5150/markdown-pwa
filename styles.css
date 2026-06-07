@@ -501,119 +501,29 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
 
 /* ── Focus Mode Overlay ── */
-#focus-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: #ffffff;
-  z-index: 800;
-  overflow-y: auto;
+/* Focus overlay — unused in new fullscreen mode, kept hidden */
+#focus-overlay { display: none; }
+#focus-wysiwyg { display: none; }
+
+/* Focus mode: hide all chrome, editor fills the screen */
+body.focus-mode #toolbar    { display: none; }
+body.focus-mode #statusbar  { display: none; }
+body.focus-mode #divider    { display: none; }
+body.focus-mode #preview-wrapper { display: none; }
+body.focus-mode #find-replace-bar { display: none; }
+body.focus-mode #editor-pane {
+  flex: 1;
+  width: 100%;
+  border: none;
+}
+body.focus-mode #editor {
+  font-size: 18px;
+  padding: 60px 15%;
+  line-height: 2;
 }
 
-body.focus-mode #focus-overlay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* WYSIWYG contenteditable column */
-#focus-wysiwyg {
-  width: 66.6667%;
-  max-width: none;
-  padding: 80px 40px 50vh;
-  font-family: var(--font);
-  font-size: 19px;
-  line-height: 1.85;
-  color: #000000;
-  outline: none;
-  min-height: 100vh;
-  caret-color: #3a6ecc;
-}
-
-/* iA Writer typography inside the WYSIWYG editor */
-#focus-wysiwyg h1, #focus-wysiwyg h2,
-#focus-wysiwyg h3, #focus-wysiwyg h4 {
-  font-family: var(--font);
-  font-weight: 700;
-  color: #000000;
-  margin: 1.6em 0 .4em;
-}
-#focus-wysiwyg h1 { font-size: 1.9em; }
-#focus-wysiwyg h2 { font-size: 1.45em; }
-#focus-wysiwyg h3 { font-size: 1.15em; }
-#focus-wysiwyg p  { margin-bottom: 1.3em; }
-#focus-wysiwyg a  { color: #3a6ecc; }
-#focus-wysiwyg blockquote {
-  border-left: 3px solid #ccc;
-  color: #444;
-  font-style: italic;
-  padding: 2px 18px;
-  margin: 0 0 1.3em;
-}
-#focus-wysiwyg code {
-  background: #f2f2f2;
-  color: #c0392b;
-  font-family: 'Cascadia Code', 'Consolas', monospace;
-  font-size: .84em;
-  padding: 2px 5px;
-  border-radius: 3px;
-}
-#focus-wysiwyg pre {
-  background: #f6f8fa;
-  border: 1px solid #e4e4e4;
-  border-radius: 6px;
-  padding: 16px;
-  overflow-x: auto;
-  margin-bottom: 1.3em;
-  font-size: .82em;
-}
-#focus-wysiwyg pre code { background: none; color: inherit; padding: 0; font-size: 1em; }
-#focus-wysiwyg ul, #focus-wysiwyg ol { padding-left: 1.6em; margin-bottom: 1.3em; }
-#focus-wysiwyg li { margin-bottom: .35em; }
-#focus-wysiwyg hr { border: none; border-top: 1px solid #ddd; margin: 2.5em auto; width: 60px; }
-#focus-wysiwyg img { max-width: 100%; border-radius: 6px; }
-#focus-wysiwyg table { border-collapse: collapse; width: 100%; margin-bottom: 1.3em; }
-#focus-wysiwyg th, #focus-wysiwyg td { border: 1px solid #e0e0e0; padding: 8px 12px; }
-#focus-wysiwyg th { background: #f5f5f5; }
-
-/* Gradient vignette — top and bottom fade */
-#focus-overlay::before,
-#focus-overlay::after {
-  content: '';
-  position: fixed;
-  left: 0; right: 0;
-  height: 100px;
-  pointer-events: none;
-  z-index: 10;
-}
-#focus-overlay::before {
-  top: 0;
-  background: linear-gradient(to bottom, #ffffff 0%, transparent 100%);
-}
-#focus-overlay::after {
-  bottom: 0;
-  background: linear-gradient(to top, #ffffff 0%, transparent 100%);
-}
-
-/* Exit focus mode button */
-#focus-exit-btn {
-  display: none;
-  position: fixed;
-  top: 14px;
-  right: 16px;
-  z-index: 9999;
-  background: rgba(0,0,0,.05);
-  border: 1px solid #e0e0e0;
-  color: #000000;
-  border-radius: 6px;
-  padding: 5px 12px;
-  font-size: 12px;
-  font-family: var(--font);
-  cursor: pointer;
-  transition: background .15s;
-}
-#focus-exit-btn:hover { background: rgba(0,0,0,.1); }
-body.focus-mode #focus-exit-btn { display: block; }
+/* Exit button — press Escape or use browser's fullscreen exit */
+#focus-exit-btn { display: none; }
 
 /* ── Responsive ── */
 @media (max-width: 700px) {

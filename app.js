@@ -821,50 +821,22 @@ function getTurndown() {
 
 function enterFocusMode() {
   focusMode = true;
-  // Sync preview then copy its rendered HTML into the WYSIWYG editor
-  renderPreview();
-  focusWysiwyg.innerHTML = previewInner.innerHTML;
-  // Re-run syntax highlighting
-  if (window.hljs) {
-    focusWysiwyg.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
-  }
   document.body.classList.add('focus-mode');
   document.getElementById('focus-btn').classList.add('active');
-  // Place cursor at start
-  focusWysiwyg.focus();
-  try {
-    const range = document.createRange();
-    range.setStart(focusWysiwyg, 0);
-    range.collapse(true);
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-  } catch(e) {}
-}
-
-function syncWysiwygToEditor() {
-  const turndown = getTurndown();
-  if (turndown && focusWysiwyg.innerHTML) {
-    try {
-      editor.value = turndown.turndown(focusWysiwyg.innerHTML);
-    } catch(e) {
-      editor.value = focusWysiwyg.innerText || focusWysiwyg.textContent || editor.value;
-    }
-  } else {
-    editor.value = focusWysiwyg.innerText || focusWysiwyg.textContent || editor.value;
+  // Request true fullscreen
+  if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(() => {});
   }
+  editor.focus();
 }
 
 function exitFocusMode() {
-  const before = editor.value;
-  syncWysiwygToEditor();
-  if (editor.value !== before) {
-    isDirty = true;
-    renderPreview(); updateStats(); updateCursor(); updateLineNumbers();
-    scheduleAutoSave();
-  }
   focusMode = false;
   document.body.classList.remove('focus-mode');
   document.getElementById('focus-btn').classList.remove('active');
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  }
   editor.focus();
 }
 
@@ -872,47 +844,10 @@ function toggleFocusMode() {
   focusMode ? exitFocusMode() : enterFocusMode();
 }
 
-// Typewriter scrolling — normal until cursor passes 50% viewport, then locks it there
-function typewriterScroll() {
-  const sel = window.getSelection();
-  if (!sel.rangeCount) return;
-  const range   = sel.getRangeAt(0).cloneRange();
-  range.collapse(true);
-  const dummy   = document.createElement('span');
-  dummy.appendChild(document.createTextNode('​'));
-  range.insertNode(dummy);
-  const cursorY = dummy.getBoundingClientRect().top;
-  dummy.parentNode.removeChild(dummy);
-  // Restore selection
-  sel.removeAllRanges();
-  sel.addRange(range);
-
-  const midpoint = window.innerHeight * 0.5;
-  if (cursorY > midpoint) {
-    const diff = cursorY - midpoint;
-    focusOverlay.scrollTop += diff;
-  }
-}
-
-// Ctrl+B / Ctrl+I in WYSIWYG
-focusWysiwyg.addEventListener('keydown', (e) => {
-  const mod = e.ctrlKey || e.metaKey;
-  if (mod && e.key === 'b') { e.preventDefault(); document.execCommand('bold'); }
-  if (mod && e.key === 'i') { e.preventDefault(); document.execCommand('italic'); }
+// Exit focus mode if user presses Escape or browser exits fullscreen
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && focusMode) exitFocusMode();
 });
-
-// Live sync WYSIWYG → editor.value on every input
-focusWysiwyg.addEventListener('input', () => {
-  syncWysiwygToEditor();
-  isDirty = true;
-  updateStats();
-  updateLineNumbers();
-  scheduleAutoSave();
-});
-
-// Trigger typewriter on every keystroke inside focus editor
-focusWysiwyg.addEventListener('keyup', typewriterScroll);
-focusWysiwyg.addEventListener('click', typewriterScroll);
 
 document.getElementById('focus-btn').addEventListener('click', toggleFocusMode);
 document.getElementById('focus-exit-btn').addEventListener('click', exitFocusMode);
