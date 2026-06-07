@@ -52,15 +52,12 @@ validateCredentials();
 let driveConnected    = false;
 let driveFileId       = null;
 let driveFileName     = null;
-let localFileHandle   = null;
 let currentTitle      = 'New Document';
 let isDirty           = false;
 let autoSaveTimer     = null;
 let tokenClient       = null;
 let driveFiles        = [];
 let selectedDriveFile = null;
-let dirHandle         = null;   // File System Access API directory handle
-let activeTreeHandle  = null;   // currently open file handle in sidebar
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const editor         = document.getElementById('editor');
@@ -232,91 +229,10 @@ document.getElementById('zoom-in-btn').addEventListener('click',    () => { zoom
 document.getElementById('zoom-out-btn').addEventListener('click',   () => { zoomLevel = Math.max(ZOOM_MIN, +(zoomLevel - ZOOM_STEP).toFixed(1)); applyZoom(); });
 document.getElementById('zoom-reset-btn').addEventListener('click', () => { zoomLevel = 1.0; applyZoom(); });
 
-// ── File Sidebar ──────────────────────────────────────────────────────────────
-const fileSidebar   = document.getElementById('file-sidebar');
-const fileTree      = document.getElementById('file-tree');
-const folderNameEl  = document.getElementById('sidebar-folder-name');
-
-document.getElementById('sidebar-toggle-btn').addEventListener('click', () => {
-  const isOpen = fileSidebar.classList.toggle('open');
-  document.getElementById('sidebar-toggle-btn').classList.toggle('active', isOpen);
-});
-
-document.getElementById('sidebar-pick-btn').addEventListener('click', openDirectory);
-
-async function openDirectory() {
-  if (!('showDirectoryPicker' in window)) {
-    showToast('File browser requires Chrome or Edge', 3000); return;
-  }
-  try {
-    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-    folderNameEl.textContent = dirHandle.name;
-    fileSidebar.classList.add('open');
-    document.getElementById('sidebar-toggle-btn').classList.add('active');
-    await refreshFileTree();
-  } catch (e) {
-    if (e.name !== 'AbortError') showToast('Could not open folder: ' + e.message);
-  }
-}
-
-async function refreshFileTree() {
-  if (!dirHandle) return;
-  const entries = [];
-  for await (const [name, handle] of dirHandle.entries()) {
-    if (handle.kind === 'file' && /\.(md|txt|markdown)$/i.test(name)) {
-      entries.push({ name, handle });
-    }
-  }
-  entries.sort((a, b) => a.name.localeCompare(b.name));
-
-  if (!entries.length) {
-    fileTree.innerHTML = '<div class="sidebar-empty">No .md files in this folder.</div>';
-    return;
-  }
-
-  fileTree.innerHTML = '';
-  for (const { name, handle } of entries) {
-    const item = document.createElement('div');
-    item.className = 'tree-item';
-    if (handle === activeTreeHandle) item.classList.add('active');
-    const icon = document.createElement('span');
-    icon.className = 'tree-icon';
-    icon.textContent = '📄';
-    const nameEl = document.createElement('span');
-    nameEl.className = 'tree-name';
-    nameEl.textContent = name;
-    item.append(icon, nameEl);
-    item.addEventListener('click', () => openFileFromSidebar(handle, name, item));
-    fileTree.appendChild(item);
-  }
-}
-
-async function openFileFromSidebar(handle, name, itemEl) {
-  if (isDirty && !confirm('You have unsaved changes. Open this file anyway?')) return;
-  try {
-    const file    = await handle.getFile();
-    const content = await file.text();
-    editor.value  = content;
-    localFileHandle  = handle;
-    activeTreeHandle = handle;
-    driveFileId      = null;
-    setTitle(name);
-    isDirty = false;
-    saveStatus.textContent = 'Opened';
-    driveFileInfo.textContent = '📄 Local file';
-    renderPreview(); updateStats(); updateCursor(); updateLineNumbers();
-    // Update active highlight
-    fileTree.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
-    itemEl.classList.add('active');
-  } catch (e) {
-    showToast('Could not open file: ' + e.message);
-  }
-}
-
 // ── Auto-save ─────────────────────────────────────────────────────────────────
 function scheduleAutoSave() {
   clearTimeout(autoSaveTimer);
-  if (!driveConnected && !localFileHandle) return;
+  if (!driveConnected) return;
   saveStatus.textContent = 'Unsaved…';
   autoSaveTimer = setTimeout(async () => { await performSave(true); }, 2000);
 }
@@ -324,95 +240,8 @@ function scheduleAutoSave() {
 async function performSave(silent = false) {
   if (!isDirty) return;
   const content = editor.value;
-  if (driveConnected && driveFileId)   { await saveToDrive(content, silent); }
-  else if (driveConnected)             { await saveNewToDrive(content, currentTitle, silent); }
-  else if (localFileHandle)            { await saveToLocalHandle(content, silent); }
-  else                                 { downloadFile(content, currentTitle); }
-}
-
-// ── Open button (local file) ──────────────────────────────────────────────────
-document.getElementById('open-local-btn').addEventListener('click', () => {
-  if ('showOpenFilePicker' in window) { openWithFilePicker(); }
-  else { document.getElementById('file-input').click(); }
-});
-
-async function openWithFilePicker() {
-  try {
-    const [handle] = await window.showOpenFilePicker({
-      types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.txt', '.markdown'] } }]
-    });
-    localFileHandle  = handle;
-    activeTreeHandle = handle;
-    driveFileId = null;
-    const file    = await handle.getFile();
-    const content = await file.text();
-    editor.value  = content;
-    setTitle(file.name);
-    isDirty = false;
-    saveStatus.textContent = 'Opened';
-    driveFileInfo.textContent = '📄 Local file';
-    renderPreview(); updateStats(); updateCursor(); updateLineNumbers();
-  } catch (e) {
-    if (e.name !== 'AbortError') showToast('Could not open file: ' + e.message);
-  }
-}
-
-document.getElementById('file-input').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  localFileHandle = null; driveFileId = null;
-  const content = await file.text();
-  editor.value  = content;
-  setTitle(file.name);
-  isDirty = false;
-  saveStatus.textContent = 'Opened';
-  driveFileInfo.textContent = '📄 Local file';
-  renderPreview(); updateStats(); updateCursor(); updateLineNumbers();
-  e.target.value = '';
-});
-
-// ── Save button (local file) ──────────────────────────────────────────────────
-document.getElementById('save-local-btn').addEventListener('click', async () => {
-  if (localFileHandle) {
-    await saveToLocalHandle(editor.value, false);
-  } else if ('showSaveFilePicker' in window) {
-    try {
-      localFileHandle = await window.showSaveFilePicker({
-        suggestedName: currentTitle,
-        types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }]
-      });
-      await saveToLocalHandle(editor.value, false);
-    } catch (e) {
-      if (e.name !== 'AbortError') downloadFile(editor.value, currentTitle);
-    }
-  } else {
-    downloadFile(editor.value, currentTitle);
-  }
-});
-
-async function saveToLocalHandle(content, silent = false) {
-  try {
-    const writable = await localFileHandle.createWritable();
-    await writable.write(content);
-    await writable.close();
-    isDirty = false;
-    saveStatus.textContent = silent ? `Saved ${new Date().toLocaleTimeString()}` : 'Saved';
-    if (!silent) showToast('✓ Saved');
-  } catch (e) {
-    saveStatus.textContent = 'Save failed';
-    showToast('Save failed: ' + e.message);
-  }
-}
-
-function downloadFile(content, filename) {
-  const a = document.createElement('a');
-  a.href  = URL.createObjectURL(new Blob([content], { type: 'text/markdown' }));
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
-  isDirty = false;
-  saveStatus.textContent = 'Downloaded';
-  showToast('✓ Downloaded ' + filename);
+  if (driveConnected && driveFileId) { await saveToDrive(content, silent); }
+  else if (driveConnected)           { await saveNewToDrive(content, currentTitle, silent); }
 }
 
 // ── New file ──────────────────────────────────────────────────────────────────
@@ -442,8 +271,6 @@ function createNewDoc() {
   document.getElementById('new-modal').classList.remove('open');
   editor.value     = '';
   setTitle(name);
-  localFileHandle  = null;
-  activeTreeHandle = null;
   driveFileId      = null;
   driveFileName    = null;
   isDirty          = false;
@@ -629,7 +456,6 @@ async function loadDriveFile(fileId, fileName) {
     editor.value    = res.body;
     driveFileId     = fileId;
     driveFileName   = fileName;
-    localFileHandle = null;
     setTitle(fileName);
     isDirty = false;
     saveStatus.textContent    = 'Opened from Drive';
@@ -1096,7 +922,7 @@ document.addEventListener('keydown', (e) => {
   const mod = e.ctrlKey || e.metaKey;
   if (mod && e.key === 's') { e.preventDefault(); performSave(false); }
   if (mod && e.key === 'n') { e.preventDefault(); if (!isDirty || confirm('Discard changes?')) openNewModal(); }
-  if (mod && e.key === 'o') { e.preventDefault(); document.getElementById('open-local-btn').click(); }
+  if (mod && e.key === 'o') { e.preventDefault(); document.getElementById('drive-open-btn').click(); }
   if (mod && e.shiftKey && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); toggleFocusMode(); return; }
   if (mod && e.key === 'f') { e.preventDefault(); openFindBar(); }
   if (mod && (e.key === '=' || e.key === '+')) { e.preventDefault(); zoomLevel = Math.min(ZOOM_MAX, +(zoomLevel + ZOOM_STEP).toFixed(1)); applyZoom(); }

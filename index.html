@@ -92,18 +92,6 @@
   <div id="toolbar">
     <div id="toolbar-body">
 
-      <!-- Sidebar toggle -->
-      <div class="tb-group">
-        <div class="tw">
-          <button class="tb-btn" id="sidebar-toggle-btn" title="Toggle File Browser">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
-          </button>
-          <span class="tw-tip">File Browser</span>
-        </div>
-      </div>
-
-      <div class="tb-divider"></div>
-
       <!-- File actions -->
       <div class="tb-group">
         <div class="tw">
@@ -111,19 +99,6 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"/></svg>
           </button>
           <span class="tw-tip">New (Ctrl+N)</span>
-        </div>
-        <div class="tw">
-          <button class="tb-btn" id="open-local-btn">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1Z"/></svg>
-          </button>
-          <span class="tw-tip">Open (Ctrl+O)</span>
-        </div>
-        <input type="file" id="file-input" accept=".md,.txt,.markdown" style="display:none"/>
-        <div class="tw">
-          <button class="tb-btn" id="save-local-btn">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-10.5C1 .784 1.784 0 2.75 0h7.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v7.836A1.75 1.75 0 0 1 13.25 14Zm0-12.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25V4.664a.25.25 0 0 0-.073-.177l-2.914-2.914a.25.25 0 0 0-.177-.073ZM8 11.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3ZM6.75 4h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1 0-1.5Z"/></svg>
-          </button>
-          <span class="tw-tip">Save (Ctrl+S)</span>
         </div>
       </div>
 
@@ -214,17 +189,6 @@
   <div id="drive-status" style="display:none">
     <span class="drive-dot"></span>
     <span id="drive-status-text">Not connected</span>
-  </div>
-
-  <!-- File Sidebar -->
-  <div id="file-sidebar">
-    <div id="sidebar-header">
-      <span id="sidebar-folder-name">Files</span>
-      <button id="sidebar-pick-btn" title="Open folder">📁</button>
-    </div>
-    <div id="file-tree">
-      <div class="sidebar-empty">No folder open.<br>Click 📁 to choose one.</div>
-    </div>
   </div>
 
   <!-- Editor: line numbers + textarea -->
