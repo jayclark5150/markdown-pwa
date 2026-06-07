@@ -27,13 +27,20 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
-          cat > config.js <<EOF
-          // Generated at deploy time from GitHub Actions secrets.
-          window.APP_CONFIG = {
-            GOOGLE_CLIENT_ID: '${GOOGLE_CLIENT_ID}',
-            GOOGLE_API_KEY:   '${GOOGLE_API_KEY}',
-          };
-          EOF
+          python3 - <<'PYEOF'
+          import os, json
+          client_id = os.environ["GOOGLE_CLIENT_ID"]
+          api_key   = os.environ["GOOGLE_API_KEY"]
+          config = (
+            "// Generated at deploy time from GitHub Actions secrets.\n"
+            "window.APP_CONFIG = {\n"
+            f"  GOOGLE_CLIENT_ID: {json.dumps(client_id)},\n"
+            f"  GOOGLE_API_KEY:   {json.dumps(api_key)},\n"
+            "};\n"
+          )
+          with open("config.js", "w") as f:
+              f.write(config)
+          PYEOF
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
