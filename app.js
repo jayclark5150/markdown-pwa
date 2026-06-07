@@ -819,6 +819,37 @@ function getTurndown() {
   return td;
 }
 
+// ── Typewriter scrolling (focus mode) ────────────────────────────────────────
+function typewriterScroll() {
+  if (!focusMode) return;
+  // Use a temporary invisible span to find the cursor's Y position in the textarea
+  const ta = editor;
+  const text = ta.value.substring(0, ta.selectionStart);
+  const mirror = document.createElement('div');
+  const cs = getComputedStyle(ta);
+  ['fontFamily','fontSize','fontWeight','lineHeight','letterSpacing',
+   'padding','paddingTop','paddingBottom','paddingLeft','paddingRight',
+   'border','borderTop','borderBottom','whiteSpace','wordWrap','width','boxSizing'
+  ].forEach(p => mirror.style[p] = cs[p]);
+  mirror.style.position   = 'absolute';
+  mirror.style.visibility = 'hidden';
+  mirror.style.overflow   = 'hidden';
+  mirror.style.height     = 'auto';
+  mirror.style.top = ta.getBoundingClientRect().top + window.scrollY + 'px';
+  mirror.style.left = ta.getBoundingClientRect().left + window.scrollX + 'px';
+  mirror.textContent = text;
+  const caret = document.createElement('span');
+  caret.textContent = '|';
+  mirror.appendChild(caret);
+  document.body.appendChild(mirror);
+  const caretTop = caret.getBoundingClientRect().top;
+  document.body.removeChild(mirror);
+
+  const target = window.innerHeight * 0.45;
+  const diff = caretTop - target;
+  if (Math.abs(diff) > 5) ta.scrollTop += diff;
+}
+
 function enterFocusMode() {
   focusMode = true;
   document.body.classList.add('focus-mode');
@@ -828,9 +859,13 @@ function enterFocusMode() {
     document.documentElement.requestFullscreen().catch(() => {});
   }
   editor.focus();
+  editor.addEventListener('keyup', typewriterScroll);
+  editor.addEventListener('click', typewriterScroll);
 }
 
 function exitFocusMode() {
+  editor.removeEventListener('keyup', typewriterScroll);
+  editor.removeEventListener('click', typewriterScroll);
   focusMode = false;
   document.body.classList.remove('focus-mode');
   document.getElementById('focus-btn').classList.remove('active');
