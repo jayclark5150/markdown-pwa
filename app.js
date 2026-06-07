@@ -1073,11 +1073,11 @@ window.addEventListener('beforeunload', (e) => {
 (function () {
   const btn  = document.getElementById('toolbar-toggle');
   const icon = document.getElementById('toolbar-toggle-icon');
-  const panelShown  = '<rect x="1" y="1" width="4" height="14" rx="1"/><rect x="7" y="1" width="8" height="14" rx="1" opacity="0.35"/>';
-  const panelHidden = '<rect x="1" y="1" width="8" height="14" rx="1" opacity="0.35"/><rect x="11" y="1" width="4" height="14" rx="1"/>';
+  const chevronLeft  = '<path d="M9.78 12.78a.75.75 0 0 1-1.06 0L4.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L6.06 8l3.72 3.72a.75.75 0 0 1 0 1.06Z"/>';
+  const chevronRight = '<path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/>';
   btn.addEventListener('click', () => {
     const hidden = document.body.classList.toggle('toolbar-hidden');
-    icon.innerHTML = hidden ? panelHidden : panelShown;
+    icon.innerHTML = hidden ? chevronRight : chevronLeft;
   });
 })();
 
