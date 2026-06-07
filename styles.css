@@ -99,6 +99,26 @@ body {
 }
 
 /* ── Vertical Toolbar ── */
+#toolbar-toggle {
+  position: relative;
+  z-index: 11;
+  width: 14px;
+  background: var(--bg2);
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--text2);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+#toolbar-toggle:hover { background: var(--border); color: var(--text); }
+body.toolbar-hidden #toolbar { display: none; }
+body.toolbar-hidden #toolbar-toggle { border-right: 1px solid var(--border); }
+
 #toolbar {
   width: var(--tb-w);
   background: var(--bg2);
@@ -391,7 +411,7 @@ body {
   transition: opacity 0.15s, color 0.15s;
   line-height: 1;
 }
-#preview-pane pre:hover .copy-btn { opacity: 1; }
+.copy-btn { opacity: 1; }
 .copy-btn:hover { color: var(--accent); }
 #preview-pane pre code { background: none; color: inherit; padding: 0; }
 #preview-pane blockquote { border-left: 3px solid var(--accent); color: var(--text2); padding: 4px 16px; margin: 0 0 1em; }

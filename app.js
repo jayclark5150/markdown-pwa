@@ -951,6 +951,18 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
+// ── Toolbar toggle ────────────────────────────────────────────────────────────
+(function () {
+  const btn  = document.getElementById('toolbar-toggle');
+  const icon = document.getElementById('toolbar-toggle-icon');
+  const chevronLeft  = '<path d="M9.78 12.78a.75.75 0 0 1-1.06 0L4.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L6.06 8l3.72 3.72a.75.75 0 0 1 0 1.06Z"/>';
+  const chevronRight = '<path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/>';
+  btn.addEventListener('click', () => {
+    const hidden = document.body.classList.toggle('toolbar-hidden');
+    icon.innerHTML = hidden ? chevronRight : chevronLeft;
+  });
+})();
+
 // ── Resizable divider ─────────────────────────────────────────────────────────
 (function () {
   const divider      = document.getElementById('divider');
