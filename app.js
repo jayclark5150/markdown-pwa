@@ -959,6 +959,44 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
+// ── Resizable divider ─────────────────────────────────────────────────────────
+(function () {
+  const divider      = document.getElementById('divider');
+  const editorPane   = document.getElementById('editor-pane');
+  const previewWrap  = document.getElementById('preview-wrapper');
+  const mainContent  = document.getElementById('main-content');
+  let dragging = false, startX = 0, startEditorW = 0, startPreviewW = 0;
+
+  divider.addEventListener('mousedown', (e) => {
+    dragging = true;
+    startX = e.clientX;
+    startEditorW  = editorPane.getBoundingClientRect().width;
+    startPreviewW = previewWrap.getBoundingClientRect().width;
+    divider.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const newEditorW  = Math.max(200, startEditorW + dx);
+    const newPreviewW = Math.max(200, startPreviewW - dx);
+    editorPane.style.flex  = 'none';
+    editorPane.style.width = newEditorW + 'px';
+    previewWrap.style.flex  = 'none';
+    previewWrap.style.width = newPreviewW + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    divider.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
 // ── Service worker ────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(console.error);
