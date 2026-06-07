@@ -153,12 +153,6 @@
           </button>
           <span class="tw-tip">Sign out of Drive</span>
         </div>
-        <div class="tw">
-          <button class="tb-btn" id="drive-folder-btn" style="display:none">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5L6.13 1.384A1.75 1.75 0 0 0 4.876 1H1.75ZM1.5 2.75a.25.25 0 0 1 .25-.25h3.126a.25.25 0 0 1 .185.082L6.74 4H14.25a.25.25 0 0 1 .25.25v8.5a.25.25 0 0 1-.25.25H1.75a.25.25 0 0 1-.25-.25Z"/></svg>
-          </button>
-          <span class="tw-tip">Set Drive Folder</span>
-        </div>
       </div>
 
       <div class="tb-divider"></div>
@@ -254,22 +248,6 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" id="drive-modal-cancel">Cancel</button>
       <button class="btn btn-primary"   id="drive-modal-open">Open</button>
-    </div>
-  </div>
-</div>
-
-<!-- Drive Folder Picker Modal -->
-<div id="folder-modal" class="modal-backdrop">
-  <div class="modal">
-    <div class="modal-title">📁 Select Drive Folder</div>
-    <div id="folder-breadcrumb" style="font-size:12px;color:var(--text2);margin-bottom:8px;min-height:18px"></div>
-    <div class="file-list" id="folder-list">
-      <div class="file-item" style="color:var(--text2);cursor:default">Loading folders…</div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" id="folder-modal-cancel">Cancel</button>
-      <button class="btn btn-secondary" id="folder-up-btn">↑ Up</button>
-      <button class="btn btn-primary"   id="folder-select-btn">Use This Folder</button>
     </div>
   </div>
 </div>
