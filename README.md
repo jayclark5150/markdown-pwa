@@ -1,21 +1,23 @@
 # Markdown PWA
 
-A fast, offline-capable Markdown editor that runs entirely in the browser, with live preview and optional Google Drive sync. Installable as a Progressive Web App.
+A fast, online Markdown editor that runs entirely in the browser, with live preview and Google Drive sync. Installable as a Progressive Web App.
+
+**Live app:** [jayclark5150.github.io/markdown-pwa](https://jayclark5150.github.io/markdown-pwa/)
 
 ## Features
 
-- **Live preview** — Markdown rendered as you type, with syntax-highlighted code blocks.
-- **Focus mode** — distraction-free WYSIWYG writing with typewriter scrolling.
-- **Find & replace** — with match navigation and replace-all.
-- **Local files** — open and save directly to disk via the File System Access API (Chrome/Edge), with a download fallback for Safari/Firefox.
-- **Google Drive sync** — open, edit, and auto-save `.md` files in your Drive.
-- **Auto-save** — saves two seconds after you stop typing.
-- **Offline** — works without a connection once installed; install it as an app from the browser.
-- Line numbers, word/character count, adjustable zoom, and light keyboard shortcuts.
+- **Live preview** — Markdown rendered as you type, with syntax-highlighted code blocks
+- **Resizable split** — drag the divider between editor and preview to your preferred layout
+- **Focus mode** — fullscreen writing with no toolbar, status bar, or preview; typewriter scrolling keeps your cursor centered (F11 to enter, Escape to exit)
+- **Google Drive sync** — open, edit, rename, delete, and auto-save `.md` files in your Drive
+- **Auto-save** — saves two seconds after you stop typing
+- **Find & replace** — with match navigation and replace-all
+- **Offline** — works without a connection once installed as a PWA
+- Line numbers, word/character count, adjustable zoom, and keyboard shortcuts
 
 ## Tech
 
-Plain HTML/CSS/JavaScript — no build step, no framework. It uses [marked](https://github.com/markedjs/marked) for parsing, [DOMPurify](https://github.com/cure53/DOMPurify) to sanitize rendered HTML, [highlight.js](https://highlightjs.org/) for code highlighting, and [Turndown](https://github.com/mixmark-io/turndown) for HTML→Markdown in focus mode. All third-party scripts are version-pinned with Subresource Integrity, and the app ships a Content Security Policy.
+Plain HTML/CSS/JavaScript — no build step, no framework. Uses [marked](https://github.com/markedjs/marked) for parsing, [DOMPurify](https://github.com/cure53/DOMPurify) to sanitize HTML, and [highlight.js](https://highlightjs.org/) for code highlighting. All third-party scripts are version-pinned with Subresource Integrity. The app ships a strict Content Security Policy.
 
 ## Setup
 
@@ -34,25 +36,29 @@ Open the local URL in Chrome or Edge.
 
 Google credentials live in `config.js`, which is **gitignored** and never committed. Copy `config.example.js` to `config.js` and fill in your own `GOOGLE_CLIENT_ID` and `GOOGLE_API_KEY`.
 
-Because the app is fully client-side, any API key it uses is visible in the browser. Restrict your key in the Google Cloud Console with HTTP-referrer restrictions (limited to your domain) and scope it to the Google Drive API only.
+Because the app is fully client-side, any API key is visible in the browser. Restrict your key in the Google Cloud Console with HTTP-referrer restrictions (your domain only) and scope it to the Google Drive API only.
 
 ## Deployment
 
-The repo includes a GitHub Actions workflow (`.github/workflows/deploy.yml`) that publishes to GitHub Pages. It generates `config.js` at deploy time from a `GOOGLE_API_KEY` repository secret, so the key stays out of the repo source.
+The repo includes a GitHub Actions workflow (`.github/workflows/deploy.yml`) that publishes to GitHub Pages. It generates `config.js` at deploy time from repository secrets using Python's `json.dumps` for safe credential escaping.
 
-To use it:
+To deploy:
 
-1. Add a repository secret named `GOOGLE_API_KEY` (Settings → Secrets and variables → Actions).
-2. Set Pages to deploy from GitHub Actions (Settings → Pages → Source → GitHub Actions).
-3. Push to `main` — the workflow builds and deploys automatically.
+1. Add two repository secrets — `GOOGLE_CLIENT_ID` and `GOOGLE_API_KEY` (Settings → Secrets and variables → Actions)
+2. Set Pages to deploy from GitHub Actions (Settings → Pages → Source → GitHub Actions)
+3. Push to `main` — the workflow builds and deploys automatically
 
-Remember to add your Pages URL to the key's referrer restrictions and to your OAuth client's authorized JavaScript origins.
+Remember to add your Pages URL to your API key's referrer restrictions and to your OAuth client's authorized JavaScript origins.
 
 ## Browser support
 
-| Browser | Open local | Save local | Drive |
-|---------|-----------|-----------|-------|
-| Chrome  | Native picker | Native picker | Yes |
-| Edge    | Native picker | Native picker | Yes |
-| Safari  | Input fallback | Download | Yes |
-| Firefox | Input fallback | Download | Yes |
+| Browser | Google Drive | Focus Mode | PWA Install |
+|---------|-------------|------------|-------------|
+| Chrome  | Yes | Yes (Fullscreen API) | Yes |
+| Edge    | Yes | Yes (Fullscreen API) | Yes |
+| Safari  | Yes | Limited | Yes |
+| Firefox | Yes | Yes (Fullscreen API) | Limited |
+
+## Changelog
+
+See [RELEASE_NOTES_v1.3.0.md](RELEASE_NOTES_v1.3.0.md) for what's new in v1.3.0.
