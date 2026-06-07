@@ -102,7 +102,7 @@ body {
 #toolbar-toggle {
   position: relative;
   z-index: 11;
-  width: 14px;
+  width: 22px;
   background: var(--bg2);
   border: none;
   border-right: 1px solid var(--border);

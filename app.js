@@ -58,6 +58,8 @@ let autoSaveTimer     = null;
 let tokenClient       = null;
 let driveFiles        = [];
 let selectedDriveFile = null;
+let driveFolderId     = localStorage.getItem('driveFolderId')   || null;
+let driveFolderName   = localStorage.getItem('driveFolderName') || 'My Drive';
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const editor         = document.getElementById('editor');
@@ -354,6 +356,7 @@ function onDriveConnected() {
   document.getElementById('drive-open-btn').style.display    = '';
   document.getElementById('drive-save-btn').style.display    = '';
   document.getElementById('drive-signout-btn').style.display = '';
+  document.getElementById('drive-folder-btn').style.display  = '';
   if (!driveFileId) driveFileInfo.textContent = '☁ Drive (new)';
   showToast('✓ Connected to Google Drive');
   fetchDriveFiles();
@@ -383,6 +386,7 @@ document.getElementById('drive-signout-btn').addEventListener('click', () => {
   document.getElementById('drive-open-btn').style.display    = 'none';
   document.getElementById('drive-save-btn').style.display    = 'none';
   document.getElementById('drive-signout-btn').style.display = 'none';
+  document.getElementById('drive-folder-btn').style.display  = 'none';
   driveFileInfo.textContent = '';
   showToast('Signed out of Google Drive');
 });
@@ -395,6 +399,9 @@ async function fetchDriveFiles(query = '') {
       // Escape backslashes and single quotes to prevent Drive query injection
       const safeQuery = query.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       q = `name contains '${safeQuery}' and (${q})`;
+    }
+    if (driveFolderId) {
+      q = `'${driveFolderId}' in parents and (${q})`;
     }
     q += " and trashed=false";
     const res = await gapi.client.drive.files.list({ q, fields: 'files(id,name,modifiedTime,size)', orderBy: 'modifiedTime desc', pageSize: 50 });
@@ -411,10 +418,117 @@ async function fetchDriveFiles(query = '') {
 document.getElementById('drive-open-btn').addEventListener('click', async () => {
   await fetchDriveFiles();
   renderDriveFileList(driveFiles);
+  const folderLabel = driveFolderName ? ` — ${driveFolderName}` : '';
+  document.querySelector('#drive-modal .modal-title').textContent = `📂 Open from Google Drive${folderLabel}`;
   document.getElementById('drive-modal').classList.add('open');
   document.getElementById('drive-search').value = '';
   selectedDriveFile = null;
 });
+
+// ── Drive Folder Picker ───────────────────────────────────────────────────────
+(function () {
+  let folderStack = []; // [{id, name}] — breadcrumb trail
+  let currentFolderId = null;
+
+  async function loadFolders(parentId) {
+    const list = document.getElementById('folder-list');
+    list.innerHTML = '<div class="file-item" style="color:var(--text2);cursor:default">Loading…</div>';
+    try {
+      let q = "mimeType='application/vnd.google-apps.folder' and trashed=false";
+      if (parentId) {
+        q = `'${parentId}' in parents and ${q}`;
+      } else {
+        q = `'root' in parents and ${q}`;
+      }
+      const res = await gapi.client.drive.files.list({
+        q,
+        fields: 'files(id,name)',
+        orderBy: 'name',
+        pageSize: 100
+      });
+      const folders = res.result.files || [];
+      renderFolderList(folders);
+      updateBreadcrumb();
+    } catch (e) {
+      list.innerHTML = '<div class="file-item" style="color:var(--text2);cursor:default">Error loading folders</div>';
+    }
+  }
+
+  function renderFolderList(folders) {
+    const list = document.getElementById('folder-list');
+    if (!folders.length) {
+      list.innerHTML = '<div class="file-item" style="color:var(--text2);cursor:default">No subfolders here</div>';
+      return;
+    }
+    list.innerHTML = '';
+    folders.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'file-item';
+      row.dataset.id = f.id;
+      row.dataset.name = f.name;
+      row.innerHTML = `<span class="file-icon">📁</span><span class="file-name">${f.name}</span>`;
+      row.addEventListener('click', () => {
+        list.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+        row.classList.add('selected');
+        currentFolderId = f.id;
+      });
+      row.addEventListener('dblclick', () => {
+        folderStack.push({ id: f.id, name: f.name });
+        currentFolderId = f.id;
+        loadFolders(f.id);
+      });
+      list.appendChild(row);
+    });
+  }
+
+  function updateBreadcrumb() {
+    const bc = document.getElementById('folder-breadcrumb');
+    const parts = ['My Drive', ...folderStack.map(f => f.name)];
+    bc.textContent = parts.join(' › ');
+    currentFolderId = folderStack.length ? folderStack[folderStack.length - 1].id : null;
+  }
+
+  document.getElementById('drive-folder-btn').addEventListener('click', () => {
+    folderStack = driveFolderId ? [] : [];
+    currentFolderId = driveFolderId;
+    // Reset to root
+    folderStack = [];
+    currentFolderId = null;
+    loadFolders(null);
+    document.getElementById('folder-modal').classList.add('open');
+  });
+
+  document.getElementById('folder-modal-cancel').addEventListener('click', () => {
+    document.getElementById('folder-modal').classList.remove('open');
+  });
+
+  document.getElementById('folder-up-btn').addEventListener('click', () => {
+    if (folderStack.length === 0) return;
+    folderStack.pop();
+    const parentId = folderStack.length ? folderStack[folderStack.length - 1].id : null;
+    currentFolderId = parentId;
+    loadFolders(parentId);
+  });
+
+  document.getElementById('folder-select-btn').addEventListener('click', () => {
+    if (currentFolderId) {
+      // A subfolder row was single-clicked, or we're inside a folder
+      driveFolderId   = currentFolderId;
+      const selectedRow = document.querySelector('#folder-list .file-item.selected');
+      driveFolderName = selectedRow ? selectedRow.dataset.name
+                        : (folderStack.length ? folderStack[folderStack.length - 1].name : 'My Drive');
+    } else {
+      // No selection — use current level (root or top of stack)
+      driveFolderId   = folderStack.length ? folderStack[folderStack.length - 1].id : null;
+      driveFolderName = folderStack.length ? folderStack[folderStack.length - 1].name : 'My Drive';
+    }
+    localStorage.setItem('driveFolderId',   driveFolderId   || '');
+    localStorage.setItem('driveFolderName', driveFolderName || 'My Drive');
+    document.getElementById('folder-modal').classList.remove('open');
+    showToast(`📁 Folder set to: ${driveFolderName}`);
+    fetchDriveFiles();
+  });
+})();
 
 document.getElementById('drive-modal-cancel').addEventListener('click', () => {
   document.getElementById('drive-modal').classList.remove('open');
@@ -577,7 +691,9 @@ async function saveNewToDrive(content, filename, silent = false) {
   try {
     setDriveStatus('saving', 'Saving…');
     const boundary = '-------314159265358979323846';
-    const metadata = JSON.stringify({ name: filename, mimeType: 'text/markdown' });
+    const meta = { name: filename, mimeType: 'text/markdown' };
+    if (driveFolderId) meta.parents = [driveFolderId];
+    const metadata = JSON.stringify(meta);
     const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: text/markdown\r\n\r\n${content}\r\n--${boundary}--`;
     const res = await gapi.client.request({ path: '/upload/drive/v3/files', method: 'POST', params: { uploadType: 'multipart' }, headers: { 'Content-Type': `multipart/related; boundary="${boundary}"` }, body });
     driveFileId   = res.result.id;
@@ -606,7 +722,9 @@ async function saveAsNewFile(newName) {
     setDriveStatus('saving', 'Saving as…');
 
     const boundary = '-------314159265358979323846';
-    const metadata = JSON.stringify({ name: newName, mimeType: 'text/markdown' });
+    const saveMeta = { name: newName, mimeType: 'text/markdown' };
+    if (driveFolderId) saveMeta.parents = [driveFolderId];
+    const metadata = JSON.stringify(saveMeta);
     const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: text/markdown\r\n\r\n${editor.value}\r\n--${boundary}--`;
 
     const res = await gapi.client.request({
@@ -955,11 +1073,11 @@ window.addEventListener('beforeunload', (e) => {
 (function () {
   const btn  = document.getElementById('toolbar-toggle');
   const icon = document.getElementById('toolbar-toggle-icon');
-  const chevronLeft  = '<path d="M9.78 12.78a.75.75 0 0 1-1.06 0L4.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L6.06 8l3.72 3.72a.75.75 0 0 1 0 1.06Z"/>';
-  const chevronRight = '<path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/>';
+  const panelShown  = '<rect x="1" y="1" width="4" height="14" rx="1"/><rect x="7" y="1" width="8" height="14" rx="1" opacity="0.35"/>';
+  const panelHidden = '<rect x="1" y="1" width="8" height="14" rx="1" opacity="0.35"/><rect x="11" y="1" width="4" height="14" rx="1"/>';
   btn.addEventListener('click', () => {
     const hidden = document.body.classList.toggle('toolbar-hidden');
-    icon.innerHTML = hidden ? chevronRight : chevronLeft;
+    icon.innerHTML = hidden ? panelHidden : panelShown;
   });
 })();
 
