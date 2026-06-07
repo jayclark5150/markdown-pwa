@@ -379,6 +379,7 @@ body {
 #preview-pane hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
 #preview-pane ul,ol { padding-left: 1.5em; margin-bottom: 1em; }
 #preview-pane li { margin-bottom: .25em; line-height: 1.7; }
+#preview-pane ul li:has(> input[type="checkbox"]) { list-style: none; margin-left: -1.5em; }
 
 /* Zoom controls overlay */
 .zoom-controls {
