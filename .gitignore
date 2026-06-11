@@ -1,5 +1,6 @@
-node_modules/
-.DS_Store
-
-# Local credentials — never commit
 config.js
+*.zip
+v1.3.0/
+markdown-pwa/
+*.code-workspace
+.DS_Store
