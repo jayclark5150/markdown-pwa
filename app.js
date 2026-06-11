@@ -854,18 +854,30 @@ function enterFocusMode() {
   focusMode = true;
   document.body.classList.add('focus-mode');
   document.getElementById('focus-btn').classList.add('active');
-  // Request true fullscreen
   if (document.documentElement.requestFullscreen) {
     document.documentElement.requestFullscreen().catch(() => {});
   }
-  editor.focus();
-  editor.addEventListener('keyup', typewriterScroll);
-  editor.addEventListener('click', typewriterScroll);
+  // Render markdown into the WYSIWYG pane
+  focusWysiwyg.innerHTML = (window.marked && window.DOMPurify)
+    ? DOMPurify.sanitize(marked.parse(editor.value || ''))
+    : editor.value;
+  focusWysiwyg.focus();
 }
 
 function exitFocusMode() {
-  editor.removeEventListener('keyup', typewriterScroll);
-  editor.removeEventListener('click', typewriterScroll);
+  // Convert WYSIWYG HTML back to markdown
+  const turndown = getTurndown();
+  if (turndown) {
+    const md = turndown.turndown(focusWysiwyg.innerHTML);
+    if (md !== editor.value) {
+      editor.value = md;
+      isDirty = true;
+      renderPreview();
+      updateStats();
+      updateLineNumbers();
+    }
+  }
+  focusWysiwyg.innerHTML = '';
   focusMode = false;
   document.body.classList.remove('focus-mode');
   document.getElementById('focus-btn').classList.remove('active');
@@ -874,6 +886,21 @@ function exitFocusMode() {
   }
   editor.focus();
 }
+
+// Live sync: keep editor.value up to date while editing in WYSIWYG
+let wysiwygSyncTimer;
+focusWysiwyg.addEventListener('input', () => {
+  clearTimeout(wysiwygSyncTimer);
+  wysiwygSyncTimer = setTimeout(() => {
+    if (!focusMode) return;
+    const turndown = getTurndown();
+    if (turndown) {
+      editor.value = turndown.turndown(focusWysiwyg.innerHTML);
+      isDirty = true;
+      updateStats();
+    }
+  }, 600);
+});
 
 function toggleFocusMode() {
   focusMode ? exitFocusMode() : enterFocusMode();
