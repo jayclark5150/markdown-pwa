@@ -1,0 +1,59 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment, cancel in-progress runs for new pushes.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate config.js from secrets
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          python3 - <<'PYEOF'
+          import os, json
+          client_id = os.environ["GOOGLE_CLIENT_ID"]
+          api_key   = os.environ["GOOGLE_API_KEY"]
+          config = (
+            "// Generated at deploy time from GitHub Actions secrets.\n"
+            "window.APP_CONFIG = {\n"
+            f"  GOOGLE_CLIENT_ID: {json.dumps(client_id)},\n"
+            f"  GOOGLE_API_KEY:   {json.dumps(api_key)},\n"
+            "};\n"
+          )
+          with open("config.js", "w") as f:
+              f.write(config)
+          PYEOF
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,5 @@
+node_modules/
+.DS_Store
+
+# Local credentials — never commit
+config.js
