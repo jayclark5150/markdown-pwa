@@ -11,6 +11,7 @@ A fast, offline-capable Markdown editor that runs entirely in the browser, with 
 - **Google Drive sync** — open, edit, and auto-save `.md` files in your Drive.
 - **Auto-save** — saves two seconds after you stop typing.
 - **Offline** — works without a connection once installed; install it as an app from the browser.
+- **Three themes** — Lokai (dark editor, light preview), Dark, and Light. Persisted across sessions.
 - Line numbers, word/character count, adjustable zoom, and light keyboard shortcuts.
 
 ## Tech
