@@ -887,6 +887,13 @@ function exitFocusMode() {
   editor.focus();
 }
 
+// Sanitize pasted content — strip rich HTML, keep plain text only
+focusWysiwyg.addEventListener('paste', (e) => {
+  e.preventDefault();
+  const text = e.clipboardData.getData('text/plain');
+  document.execCommand('insertText', false, text);
+});
+
 // Live sync: keep editor.value up to date while editing in WYSIWYG
 let wysiwygSyncTimer;
 focusWysiwyg.addEventListener('input', () => {
