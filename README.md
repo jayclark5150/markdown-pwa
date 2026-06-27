@@ -49,6 +49,17 @@ To use it:
 
 Remember to add your Pages URL to the key's referrer restrictions and to your OAuth client's authorized JavaScript origins.
 
+## Changelog
+
+### v1.5.0
+
+- **UI redesign** — horizontal header bar and format bar replace the vertical toolbar
+- **Three themes** — Lokai (dark editor + light preview, default), Dark, and Light with localStorage persistence
+- **WYSIWYG focus mode** — renders markdown as styled prose for distraction-free editing; converts back to markdown on exit via Turndown
+- **Mobile responsive** — safe-area insets for iPhone notch, 38px touch targets, horizontally scrollable format bar, Open/Share moved into the "..." menu
+- **Security hardening** — SRI hash on highlight.js CSS, paste sanitizer on WYSIWYG contenteditable
+- **Repo cleanup** — removed planning docs, stale archives, and editor config files
+
 ## Browser support
 
 | Browser | Open local | Save local | Drive |
