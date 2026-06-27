@@ -1158,10 +1158,21 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
-  btnEdit.addEventListener('click',    () => setView('edit'));
-  btnSplit.addEventListener('click',   () => setView('split'));
-  btnPreview.addEventListener('click', () => setView('preview'));
-  setView(window.innerWidth <= 700 ? 'edit' : 'split');
+  btnEdit.addEventListener('click',    () => { userPickedView = true; setView('edit'); });
+  btnSplit.addEventListener('click',   () => { userPickedView = true; setView('split'); });
+  btnPreview.addEventListener('click', () => { userPickedView = true; setView('preview'); });
+
+  let userPickedView = false;
+  let wasMobile = window.innerWidth <= 700;
+  setView(wasMobile ? 'edit' : 'split');
+
+  window.addEventListener('resize', () => {
+    const isMobile = window.innerWidth <= 700;
+    if (isMobile !== wasMobile && !userPickedView) {
+      setView(isMobile ? 'edit' : 'split');
+    }
+    wasMobile = isMobile;
+  });
 })();
 
 // ── Header bar delegation ─────────────────────────────────────────────────────
