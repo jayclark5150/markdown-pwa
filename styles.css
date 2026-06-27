@@ -773,7 +773,46 @@ body.theme-light #find-replace-bar input { background: #fff; border-color: #d0d7
 body.theme-light #find-replace-bar button { background: #eaeef2; border-color: #d0d7de; color: #57606a; }
 
 /* ── Responsive ── */
+
+/* Tablet / small desktop */
 @media (max-width: 700px) {
   #preview-wrapper { display: none; }
+  #divider { display: none; }
   #editor-pane { border-right: none; }
+
+  .fmt-view-group { display: none; }
+  .fmt-spacer { display: none; }
+}
+
+/* Phone */
+@media (max-width: 480px) {
+  #header-bar { padding: 0 6px; gap: 4px; }
+
+  .hdr-center { position: static; transform: none; flex: 1; min-width: 0; }
+  #tb-title { max-width: 120px; font-size: 12px; }
+  #title-input { width: 120px; font-size: 12px; }
+
+  .hdr-action-btn { padding: 4px 6px; font-size: 11px; }
+  .hdr-action-btn svg { display: none; }
+
+  #format-bar { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; gap: 0; padding: 0 4px; }
+  .fmt-sep { margin: 0 2px; }
+
+  #line-numbers { width: 32px; font-size: 12px; padding: 12px 4px 12px 0; }
+  #editor { padding: 12px 10px; font-size: 13px; }
+
+  #find-replace-bar { padding: 6px 8px; gap: 4px; }
+  #find-replace-bar input { width: 100px; font-size: 12px; padding: 4px 6px; }
+  .fr-label { min-width: 36px; font-size: 11px; }
+  #match-info { min-width: 40px; font-size: 11px; }
+
+  #statusbar { padding: 0 8px; gap: 8px; font-size: 10px; }
+  #cursor-pos { display: none; }
+
+  .modal { padding: 16px; border-radius: 8px; }
+  .modal-title { font-size: 14px; }
+
+  #focus-wysiwyg { width: 90%; padding: 0 16px; font-size: 16px; }
+
+  .zoom-controls { bottom: 6px; right: 6px; }
 }
