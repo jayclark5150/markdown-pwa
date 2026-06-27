@@ -209,16 +209,6 @@ body {
 .hdr-danger     { color: #e06c75; }
 .hdr-danger:hover { background: rgba(224,108,117,.15) !important; }
 
-.hdr-action-btn {
-  background: #2a2a2a; border: 1px solid #444;
-  color: #ccc; padding: 4px 10px;
-  border-radius: 6px; cursor: pointer;
-  font-size: 12px; font-family: var(--font);
-  display: inline-flex; align-items: center; gap: 4px;
-  transition: background .15s, color .15s;
-  white-space: nowrap;
-}
-.hdr-action-btn:hover { background: #333; color: #fff; }
 
 /* More dropdown */
 .hdr-more-wrap { position: relative; }
@@ -745,8 +735,6 @@ body.theme-light #header-bar   { background: #f6f8fa; border-bottom-color: #d0d7
 body.theme-light #format-bar   { background: #f6f8fa; border-bottom-color: #d0d7de; }
 body.theme-light .hdr-btn      { color: #57606a; }
 body.theme-light .hdr-btn:hover { background: #eaeef2; color: #24292f; }
-body.theme-light .hdr-action-btn { background: #eaeef2; border-color: #d0d7de; color: #24292f; }
-body.theme-light .hdr-action-btn:hover { background: #d0d7de; }
 body.theme-light .hdr-dropdown { background: #ffffff; border-color: #d0d7de; }
 body.theme-light .hdr-dd-item  { color: #24292f; }
 body.theme-light .hdr-dd-item:hover { background: #f6f8fa; }
@@ -791,8 +779,6 @@ body.theme-light #find-replace-bar button { background: #eaeef2; border-color: #
     padding-right: env(safe-area-inset-right);
   }
 
-  /* Header: Open/Share already in "..." menu, keep hidden buttons hidden */
-  .hdr-right .hdr-action-btn { display: none; }
 
   /* Shrink the filename area and center it */
   .hdr-center {

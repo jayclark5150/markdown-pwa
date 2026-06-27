@@ -1165,32 +1165,24 @@ document.addEventListener('keydown', (e) => {
 })();
 
 // ── Header bar delegation ─────────────────────────────────────────────────────
-document.getElementById('hdr-open-btn').addEventListener('click', () => {
-  if (!driveConnected) {
-    document.getElementById('drive-signin-btn').click();
-  } else {
-    document.getElementById('drive-open-btn').click();
-  }
-});
-
-document.getElementById('hdr-share-btn').addEventListener('click', () => {
-  if (!driveConnected) {
-    document.getElementById('drive-signin-btn').click();
-  } else {
-    document.getElementById('drive-save-btn').click();
-  }
-});
-
 document.getElementById('hdr-more-btn').addEventListener('click', (e) => {
   e.stopPropagation();
   document.getElementById('hdr-more-menu').classList.toggle('open');
 });
 document.getElementById('hdr-open-mobile').addEventListener('click', () => {
-  document.getElementById('hdr-open-btn').click();
+  if (!driveConnected) {
+    document.getElementById('drive-signin-btn').click();
+  } else {
+    document.getElementById('drive-open-btn').click();
+  }
   document.getElementById('hdr-more-menu').classList.remove('open');
 });
 document.getElementById('hdr-share-mobile').addEventListener('click', () => {
-  document.getElementById('hdr-share-btn').click();
+  if (!driveConnected) {
+    document.getElementById('drive-signin-btn').click();
+  } else {
+    document.getElementById('drive-save-btn').click();
+  }
   document.getElementById('hdr-more-menu').classList.remove('open');
 });
 document.getElementById('hdr-drive-connect').addEventListener('click', () => {
