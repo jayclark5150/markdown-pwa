@@ -513,8 +513,11 @@ body {
 #preview-pane {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px 32px;
   background: var(--bg);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 #preview-inner {
@@ -527,8 +530,8 @@ body {
 #preview-pane p  { color: var(--text); line-height: 1.7; margin-bottom: 1em; }
 #preview-pane a  { color: var(--accent); }
 #preview-pane code { background: #f0f0f0; color: #c0392b; padding: 2px 6px; border-radius: 4px; font-family: 'Cascadia Code', monospace; font-size: .9em; }
-#preview-pane pre { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin-bottom: 1em; }
-#preview-pane pre code { background: none; color: inherit; padding: 0; }
+#preview-pane pre { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin-bottom: 1em; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
+#preview-pane pre code { background: none; color: inherit; padding: 0; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
 #preview-pane blockquote { border-left: 3px solid var(--accent); color: var(--text2); padding: 4px 16px; margin: 0 0 1em; }
 #preview-pane table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
 #preview-pane th,td { border: 1px solid var(--border); padding: 8px 12px; }
@@ -685,8 +688,8 @@ body.focus-mode #focus-overlay { display: block; }
 #focus-wysiwyg p  { color: var(--text); line-height: 1.7; margin-bottom: 1em; }
 #focus-wysiwyg a  { color: var(--accent); }
 #focus-wysiwyg code { background: #f0f0f0; color: #c0392b; padding: 2px 6px; border-radius: 4px; font-family: 'Cascadia Code', monospace; font-size: .9em; }
-#focus-wysiwyg pre { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin-bottom: 1em; }
-#focus-wysiwyg pre code { background: none; color: inherit; padding: 0; }
+#focus-wysiwyg pre { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin-bottom: 1em; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
+#focus-wysiwyg pre code { background: none; color: inherit; padding: 0; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
 #focus-wysiwyg blockquote { border-left: 3px solid var(--accent); color: var(--text2); padding: 4px 16px; margin: 0 0 1em; }
 #focus-wysiwyg table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
 #focus-wysiwyg th,#focus-wysiwyg td { border: 1px solid var(--border); padding: 8px 12px; }
