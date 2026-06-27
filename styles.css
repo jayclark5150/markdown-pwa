@@ -772,6 +772,9 @@ body.theme-light #find-replace-bar { background: #f6f8fa; border-bottom-color: #
 body.theme-light #find-replace-bar input { background: #fff; border-color: #d0d7de; color: #24292f; }
 body.theme-light #find-replace-bar button { background: #eaeef2; border-color: #d0d7de; color: #57606a; }
 
+/* Mobile-only menu items: hidden on desktop, shown on phone */
+.hdr-mobile-only { display: none !important; }
+
 /* ── Responsive (mobile / narrow screens) ── */
 @media (max-width: 700px) {
 
@@ -779,6 +782,8 @@ body.theme-light #find-replace-bar button { background: #eaeef2; border-color: #
   #header-bar {
     padding-top: env(safe-area-inset-top);
     height: calc(44px + env(safe-area-inset-top));
+    padding: 0 8px;
+    gap: 4px;
   }
   #statusbar {
     padding-bottom: env(safe-area-inset-bottom);
@@ -789,65 +794,63 @@ body.theme-light #find-replace-bar button { background: #eaeef2; border-color: #
     padding-right: env(safe-area-inset-right);
   }
 
-  /* Header: drop the filename input width, hide Share label text, keep icons reachable */
-  .hdr-center { max-width: 45vw; }
-  #tb-title, #title-input { max-width: 32vw; }
-  .hdr-action-btn { padding: 4px 8px; font-size: 11px; }
-  .hdr-action-btn svg { display: none; } /* drop the little chevron, save space */
+  /* Header: hide Open/Share buttons — use the "..." menu instead on mobile */
+  .hdr-right .hdr-action-btn { display: none; }
+  .hdr-mobile-only { display: flex !important; }
 
-  /* Format bar: don't wrap into multiple rows — scroll horizontally instead,
-     and make every tappable button at least 36px so fingers don't miss. */
+  /* Shrink the filename area and center it */
+  .hdr-center {
+    position: static;
+    transform: none;
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    justify-content: center;
+  }
+  #tb-title { max-width: 40vw; font-size: 12px; }
+  #title-input { max-width: 40vw; font-size: 12px; }
+  .hdr-doc-icon { display: none; }
+
+  /* Header icon buttons: 36px touch targets */
+  .hdr-btn { width: 36px; height: 36px; }
+
+  /* Format bar: scroll horizontally, no wrapping, good touch targets */
   #format-bar {
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     flex-wrap: nowrap;
+    gap: 2px;
+    padding: 0 6px;
   }
   #format-bar::-webkit-scrollbar { display: none; }
-  .fmt-btn {
-    min-width: 36px;
-    height: 36px;
-  }
+  .fmt-btn { min-width: 38px; height: 36px; }
   .fmt-dd-arrow { height: 36px; }
+  .fmt-sep { margin: 0 3px; }
   .fmt-view-group .fmt-btn { height: 30px; min-width: 32px; }
 
-  /* Header icon buttons: same touch-target bump */
-  .hdr-btn { width: 36px; height: 36px; }
+  /* Divider: no drag-resize on touch */
+  #divider { display: none !important; }
 
-  /* Editor / preview: let the existing view-toggle (Edit / Split / Preview
-     buttons) do the work — on phones we just give each pane full width when
-     shown, since side-by-side split is unreadable below ~700px. */
-  #editor-pane,
-  #preview-wrapper {
-    min-width: 0; /* allow shrinking to full small-screen width */
-  }
-  #divider { display: none !important; } /* no usable drag-resize on touch */
-
-  /* Hide line numbers by default to save horizontal space for the actual text;
-     re-enable by removing this rule if you'd rather keep them. */
+  /* Editor / preview: full width each when shown */
+  #editor-pane, #preview-wrapper { min-width: 0; }
   #line-numbers { display: none; }
-
-  #editor { padding: 14px 16px; font-size: 15px; } /* slightly larger for touch reading */
+  #editor { padding: 14px 16px; font-size: 15px; }
   #preview-pane { padding: 14px 16px; }
 
-  /* Zoom controls sit closer to the edge so they don't crowd content */
   .zoom-controls { bottom: 8px; right: 8px; }
 
-  /* Status bar: ditch least-important info, keep word/char count and save status */
+  /* Status bar */
   #statusbar { gap: 10px; padding: 0 10px; font-size: 10px; }
   #cursor-pos { display: none; }
 
-  /* Find & Replace bar: stack search/replace rows instead of one cramped line */
-  #find-replace-bar.visible {
-    flex-wrap: wrap;
-    row-gap: 6px;
-  }
+  /* Find & Replace bar */
+  #find-replace-bar.visible { flex-wrap: wrap; row-gap: 6px; }
   #find-replace-bar input { width: 120px; flex: 1; min-width: 90px; }
 }
 
-/* Extra-narrow phones in portrait (e.g. iPhone SE) */
+/* Extra-narrow phones (iPhone SE) */
 @media (max-width: 380px) {
-  .hdr-center { display: none; } /* title takes too much room at this width */
-  .hdr-action-btn span { display: none; }
+  .hdr-center { display: none; }
 }

@@ -1185,6 +1185,14 @@ document.getElementById('hdr-more-btn').addEventListener('click', (e) => {
   e.stopPropagation();
   document.getElementById('hdr-more-menu').classList.toggle('open');
 });
+document.getElementById('hdr-open-mobile').addEventListener('click', () => {
+  document.getElementById('hdr-open-btn').click();
+  document.getElementById('hdr-more-menu').classList.remove('open');
+});
+document.getElementById('hdr-share-mobile').addEventListener('click', () => {
+  document.getElementById('hdr-share-btn').click();
+  document.getElementById('hdr-more-menu').classList.remove('open');
+});
 document.getElementById('hdr-drive-connect').addEventListener('click', () => {
   document.getElementById('drive-signin-btn').click();
   document.getElementById('hdr-more-menu').classList.remove('open');
