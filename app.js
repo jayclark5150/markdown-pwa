@@ -1161,7 +1161,7 @@ document.addEventListener('keydown', (e) => {
   btnEdit.addEventListener('click',    () => setView('edit'));
   btnSplit.addEventListener('click',   () => setView('split'));
   btnPreview.addEventListener('click', () => setView('preview'));
-  setView('split');
+  setView(window.innerWidth <= 700 ? 'edit' : 'split');
 })();
 
 // ── Header bar delegation ─────────────────────────────────────────────────────
