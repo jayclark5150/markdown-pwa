@@ -772,9 +772,6 @@ body.theme-light #find-replace-bar { background: #f6f8fa; border-bottom-color: #
 body.theme-light #find-replace-bar input { background: #fff; border-color: #d0d7de; color: #24292f; }
 body.theme-light #find-replace-bar button { background: #eaeef2; border-color: #d0d7de; color: #57606a; }
 
-/* Mobile-only menu items: hidden on desktop, shown on phone */
-.hdr-mobile-only { display: none !important; }
-
 /* ── Responsive (mobile / narrow screens) ── */
 @media (max-width: 700px) {
 
@@ -794,9 +791,8 @@ body.theme-light #find-replace-bar button { background: #eaeef2; border-color: #
     padding-right: env(safe-area-inset-right);
   }
 
-  /* Header: hide Open/Share buttons — use the "..." menu instead on mobile */
+  /* Header: Open/Share already in "..." menu, keep hidden buttons hidden */
   .hdr-right .hdr-action-btn { display: none; }
-  .hdr-mobile-only { display: flex !important; }
 
   /* Shrink the filename area and center it */
   .hdr-center {
