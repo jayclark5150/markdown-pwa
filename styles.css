@@ -770,9 +770,18 @@ body.theme-light #find-replace-bar button { background: #eaeef2; border-color: #
     padding-right: env(safe-area-inset-right);
   }
 
-  /* Touch-friendly targets on tablet */
-  .hdr-btn { width: 36px; height: 36px; }
-  .fmt-btn { min-width: 36px; height: 34px; }
+  /* Touch-friendly targets on tablet (Apple HIG: 44pt minimum) */
+  .hdr-btn { width: 44px; height: 44px; font-size: 16px; }
+  .hdr-btn svg { width: 18px; height: 18px; }
+  #header-bar { height: 48px; gap: 2px; }
+
+  .fmt-btn { min-width: 44px; height: 40px; font-size: 15px; }
+  .fmt-btn svg { width: 16px; height: 16px; }
+  .fmt-dd-arrow { height: 40px; min-width: 20px; }
+  #format-bar { height: 44px; gap: 2px; }
+
+  .hdr-dd-item { padding: 10px 14px; font-size: 14px; }
+  .fmt-dd-item { padding: 8px 12px; font-size: 14px; }
 
   /* Prevent text selection lag on touch */
   #editor { -webkit-user-select: text; }
