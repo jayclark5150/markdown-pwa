@@ -1,8 +1,9 @@
-const CACHE = 'md-editor-v5';
+const CACHE = 'md-editor-v6';
 const ASSETS = [
   '/',
   '/index.html',
   '/app.js',
+  '/styles.css',
   '/manifest.json',
   'https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js',
   'https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js',

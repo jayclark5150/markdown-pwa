@@ -760,10 +760,27 @@ body.theme-light #find-replace-bar { background: #f6f8fa; border-bottom-color: #
 body.theme-light #find-replace-bar input { background: #fff; border-color: #d0d7de; color: #24292f; }
 body.theme-light #find-replace-bar button { background: #eaeef2; border-color: #d0d7de; color: #57606a; }
 
-/* ── Responsive (mobile / narrow screens) ── */
+/* ── iPad / tablet (portrait, Split View, Slide Over) ── */
+@media (max-width: 1024px) {
+  /* Safe areas for iPadOS — always apply on touch devices */
+  #header-bar { padding-top: env(safe-area-inset-top); }
+  #statusbar  { padding-bottom: env(safe-area-inset-bottom); }
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Touch-friendly targets on tablet */
+  .hdr-btn { width: 36px; height: 36px; }
+  .fmt-btn { min-width: 36px; height: 34px; }
+
+  /* Prevent text selection lag on touch */
+  #editor { -webkit-user-select: text; }
+}
+
+/* ── Phone / narrow windows (iPad Slide Over, Split View 1/3) ── */
 @media (max-width: 700px) {
 
-  /* Respect iOS notch / home-indicator safe areas */
   #header-bar {
     padding-top: env(safe-area-inset-top);
     height: calc(44px + env(safe-area-inset-top));
@@ -773,10 +790,6 @@ body.theme-light #find-replace-bar button { background: #eaeef2; border-color: #
   #statusbar {
     padding-bottom: env(safe-area-inset-bottom);
     height: calc(var(--status-h) + env(safe-area-inset-bottom));
-  }
-  body {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
   }
 
 
