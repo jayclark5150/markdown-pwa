@@ -60,6 +60,14 @@ Remember to add your Pages URL to the key's referrer restrictions and to your OA
 - **Security hardening** — SRI hash on highlight.js CSS, paste sanitizer on WYSIWYG contenteditable
 - **Repo cleanup** — removed planning docs, stale archives, and editor config files
 
+### v1.5.1
+
+- **iPad PWA support** — installable via Safari "Add to Home Screen" with proper icons (152, 167, 180px) and dark launch images to prevent white flash on startup
+- **44px touch targets** — header and format bar buttons meet Apple Human Interface Guidelines minimum for iPad
+- **Tablet CSS breakpoint** (≤1024px) — safe-area insets, larger dropdown items, touch-optimized layout
+- **Fixed manifest paths** — `start_url` and shortcuts corrected for GitHub Pages subpath
+- **Service worker** — added `styles.css` to pre-cache, bumped cache version
+
 ## Browser support
 
 | Browser | Open local | Save local | Drive |
