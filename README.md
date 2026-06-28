@@ -63,8 +63,11 @@ Remember to add your Pages URL to the key's referrer restrictions and to your OA
 ### v1.5.1
 
 - **iPad PWA support** — installable via Safari "Add to Home Screen" with proper icons (152, 167, 180px) and dark launch images to prevent white flash on startup
-- **44px touch targets** — header and format bar buttons meet Apple Human Interface Guidelines minimum for iPad
+- **iPhone responsive layout** — safe-area insets for notch/home indicator, auto-switches to edit-only view below 700px, launch images for iPhone 14/15
+- **44px touch targets** — header and format bar buttons meet Apple Human Interface Guidelines minimum on iPad and iPhone
 - **Tablet CSS breakpoint** (≤1024px) — safe-area insets, larger dropdown items, touch-optimized layout
+- **Phone CSS breakpoint** (≤700px) — horizontally scrollable format bar, hidden line numbers, compact header with filename centered
+- **Extra-narrow support** (≤380px) — iPhone SE and iPad Slide Over handled gracefully
 - **Fixed manifest paths** — `start_url` and shortcuts corrected for GitHub Pages subpath
 - **Service worker** — added `styles.css` to pre-cache, bumped cache version
 
