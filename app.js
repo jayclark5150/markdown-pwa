@@ -242,6 +242,8 @@ async function performSave(silent = false) {
   const content = editor.value;
   if (driveConnected && driveFileId) { await saveToDrive(content, silent); }
   else if (driveConnected)           { await saveNewToDrive(content, currentTitle, silent); }
+  else if (localFileHandle)          { await localSave(); }
+  else if (!silent)                  { await localSave(); }
 }
 
 // ── New file ──────────────────────────────────────────────────────────────────
@@ -1174,6 +1176,87 @@ document.addEventListener('keydown', (e) => {
     wasMobile = isMobile;
   });
 })();
+
+// ── Local file system ────────────────────────────────────────────────────────
+let localFileHandle = null;
+
+async function localOpen() {
+  if (isDirty && !confirm('Discard unsaved changes?')) return;
+  if (window.showOpenFilePicker) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'Markdown / Text', accept: { 'text/markdown': ['.md'], 'text/plain': ['.txt'] } }]
+      });
+      localFileHandle = handle;
+      const file = await handle.getFile();
+      editor.value = await file.text();
+      setTitle(file.name);
+      isDirty = false;
+      renderPreview(); updateStats(); updateLineNumbers();
+      showToast(`Opened "${file.name}"`);
+    } catch (e) { if (e.name !== 'AbortError') showToast('Could not open file'); }
+  } else {
+    document.getElementById('local-file-input').click();
+  }
+}
+
+async function localSave() {
+  if (!editor.value) { showToast('Nothing to save'); return; }
+  if (window.showSaveFilePicker) {
+    try {
+      if (!localFileHandle) {
+        localFileHandle = await window.showSaveFilePicker({
+          suggestedName: currentTitle || 'untitled.md',
+          types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }]
+        });
+      }
+      const writable = await localFileHandle.createWritable();
+      await writable.write(editor.value);
+      await writable.close();
+      isDirty = false;
+      saveStatus.textContent = 'Saved';
+      showToast(`Saved "${localFileHandle.name}"`);
+    } catch (e) { if (e.name !== 'AbortError') showToast('Save failed'); }
+  } else {
+    localDownload();
+  }
+}
+
+function localDownload() {
+  const blob = new Blob([editor.value], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = currentTitle || 'untitled.md';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast(`Downloaded "${a.download}"`);
+}
+
+// File input fallback (Safari/Firefox open)
+document.getElementById('local-file-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  editor.value = await file.text();
+  setTitle(file.name);
+  localFileHandle = null;
+  isDirty = false;
+  renderPreview(); updateStats(); updateLineNumbers();
+  showToast(`Opened "${file.name}"`);
+  e.target.value = '';
+});
+
+document.getElementById('hdr-local-open').addEventListener('click', () => {
+  localOpen();
+  document.getElementById('hdr-more-menu').classList.remove('open');
+});
+document.getElementById('hdr-local-save').addEventListener('click', () => {
+  localSave();
+  document.getElementById('hdr-more-menu').classList.remove('open');
+});
+document.getElementById('hdr-local-download').addEventListener('click', () => {
+  localDownload();
+  document.getElementById('hdr-more-menu').classList.remove('open');
+});
 
 // ── Header bar delegation ─────────────────────────────────────────────────────
 document.getElementById('hdr-more-btn').addEventListener('click', (e) => {
