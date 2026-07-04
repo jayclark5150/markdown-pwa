@@ -14,6 +14,9 @@ const GOOGLE_CLIENT_ID = APP_CONFIG.GOOGLE_CLIENT_ID || '';
 const GOOGLE_API_KEY   = APP_CONFIG.GOOGLE_API_KEY   || '';
 const SCOPES           = 'https://www.googleapis.com/auth/drive.file';
 const DISCOVERY_DOC    = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+const MS_CLIENT_ID     = APP_CONFIG.MS_CLIENT_ID || '';
+const GRAPH_SCOPES     = ['Files.ReadWrite'];
+const GRAPH_BASE       = 'https://graph.microsoft.com/v1.0';
 
 // Validate credentials are present
 function validateCredentials() {
@@ -58,6 +61,12 @@ let autoSaveTimer     = null;
 let tokenClient       = null;
 let driveFiles        = [];
 let selectedDriveFile = null;
+let oneDriveConnected = false;
+let oneDriveFileId    = null;
+let oneDriveFileName  = null;
+let msalInstance      = null;
+let msalAccount       = null;
+let cloudPickerMode   = 'gdrive'; // which provider the shared file-picker modal targets
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const editor         = document.getElementById('editor');
@@ -185,7 +194,8 @@ function commitTitle() {
   if (v) {
     currentTitle = v.endsWith('.md') || v.endsWith('.txt') ? v : v + '.md';
     tbTitle.textContent = currentTitle;
-    if (driveFileId) driveFileName = currentTitle;
+    if (driveFileId)    driveFileName    = currentTitle;
+    if (oneDriveFileId) oneDriveFileName = currentTitle;
   }
   titleInput.style.display = 'none';
   tbTitle.style.display = '';
@@ -232,7 +242,7 @@ document.getElementById('zoom-reset-btn').addEventListener('click', () => { zoom
 // ── Auto-save ─────────────────────────────────────────────────────────────────
 function scheduleAutoSave() {
   clearTimeout(autoSaveTimer);
-  if (!driveConnected) return;
+  if (!driveConnected && !oneDriveConnected) return;
   saveStatus.textContent = 'Unsaved…';
   autoSaveTimer = setTimeout(async () => { await performSave(true); }, 2000);
 }
@@ -240,10 +250,12 @@ function scheduleAutoSave() {
 async function performSave(silent = false) {
   if (!isDirty) return;
   const content = editor.value;
-  if (driveConnected && driveFileId) { await saveToDrive(content, silent); }
-  else if (driveConnected)           { await saveNewToDrive(content, currentTitle, silent); }
-  else if (localFileHandle)          { await localSave(); }
-  else if (!silent)                  { await localSave(); }
+  if (driveConnected && driveFileId)            { await saveToDrive(content, silent); }
+  else if (oneDriveConnected && oneDriveFileId) { await saveToOneDrive(content, silent); }
+  else if (driveConnected)                      { await saveNewToDrive(content, currentTitle, silent); }
+  else if (oneDriveConnected)                   { await saveToOneDrive(content, silent); }
+  else if (localFileHandle)                     { await localSave(); }
+  else if (!silent)                             { await localSave(); }
 }
 
 // ── New file ──────────────────────────────────────────────────────────────────
@@ -275,9 +287,11 @@ function createNewDoc() {
   setTitle(name);
   driveFileId      = null;
   driveFileName    = null;
+  oneDriveFileId   = null;
+  oneDriveFileName = null;
   isDirty          = false;
   saveStatus.textContent    = '';
-  driveFileInfo.textContent = driveConnected ? '☁ Drive (new)' : '';
+  driveFileInfo.textContent = driveConnected ? '☁ Drive (new)' : (oneDriveConnected ? '☁ OneDrive (new)' : '');
   renderPreview(); updateStats(); updateCursor(); updateLineNumbers();
 }
 
@@ -389,6 +403,8 @@ async function fetchDriveFiles(query = '') {
 }
 
 document.getElementById('drive-open-btn').addEventListener('click', async () => {
+  cloudPickerMode = 'gdrive';
+  document.getElementById('cloud-modal-title').textContent = '📂 Open from Google Drive';
   await fetchDriveFiles();
   renderDriveFileList(driveFiles);
   document.getElementById('drive-modal').classList.add('open');
@@ -402,14 +418,19 @@ document.getElementById('drive-modal-cancel').addEventListener('click', () => {
 
 document.getElementById('drive-search').addEventListener('input', async (e) => {
   const q = e.target.value.trim();
-  const files = q ? await fetchDriveFiles(q) : driveFiles;
+  let files;
+  if (cloudPickerMode === 'onedrive') {
+    files = await fetchOneDriveFiles(q);
+  } else {
+    files = q ? await fetchDriveFiles(q) : driveFiles;
+  }
   renderDriveFileList(files);
 });
 
 function renderDriveFileList(files) {
   const list = document.getElementById('drive-file-list');
   if (!files.length) {
-    list.innerHTML = '<div class="file-item" style="color:var(--text2);cursor:default">No markdown files found in Drive</div>';
+    list.innerHTML = '<div class="file-item" style="color:var(--text2);cursor:default">No markdown files found</div>';
     return;
   }
   list.innerHTML = '';
@@ -448,7 +469,11 @@ document.getElementById('drive-modal-open').addEventListener('click', openSelect
 async function openSelectedDriveFile() {
   if (!selectedDriveFile) { showToast('Select a file first'); return; }
   document.getElementById('drive-modal').classList.remove('open');
-  await loadDriveFile(selectedDriveFile.id, selectedDriveFile.name);
+  if (cloudPickerMode === 'onedrive') {
+    await loadOneDriveFile(selectedDriveFile.id, selectedDriveFile.name);
+  } else {
+    await loadDriveFile(selectedDriveFile.id, selectedDriveFile.name);
+  }
 }
 
 async function loadDriveFile(fileId, fileName) {
@@ -458,6 +483,8 @@ async function loadDriveFile(fileId, fileName) {
     editor.value    = res.body;
     driveFileId     = fileId;
     driveFileName   = fileName;
+    oneDriveFileId   = null;
+    oneDriveFileName = null;
     setTitle(fileName);
     isDirty = false;
     saveStatus.textContent    = 'Opened from Drive';
@@ -675,6 +702,188 @@ async function deleteDriveFile() {
     setDriveStatus('error', 'Delete failed');
     showToast('Drive delete failed: ' + e.message);
   }
+}
+
+// ── OneDrive (Microsoft Graph) ────────────────────────────────────────────────
+// Auth is handled by MSAL.js (SPA + PKCE, no client secret). Tokens live in
+// sessionStorage for the tab session only; file I/O goes through Graph.
+
+async function ensureMsal() {
+  if (msalInstance) return msalInstance;
+  if (!window.msal || !MS_CLIENT_ID) return null;
+  const inst = new msal.PublicClientApplication({
+    auth: {
+      clientId: MS_CLIENT_ID,
+      // 'common' allows both work/school and personal Microsoft accounts.
+      authority: 'https://login.microsoftonline.com/common',
+      redirectUri: window.location.origin + window.location.pathname,
+    },
+    cache: { cacheLocation: 'sessionStorage' },
+  });
+  await inst.initialize();
+  msalInstance = inst;
+  return inst;
+}
+
+async function getGraphToken() {
+  if (!msalInstance || !msalAccount) throw new Error('Not signed in to OneDrive');
+  try {
+    const r = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account: msalAccount });
+    return r.accessToken;
+  } catch (_) {
+    const r = await msalInstance.acquireTokenPopup({ scopes: GRAPH_SCOPES, account: msalAccount });
+    return r.accessToken;
+  }
+}
+
+async function graphFetch(path, opts = {}) {
+  const token = await getGraphToken();
+  const res = await fetch(GRAPH_BASE + path, {
+    ...opts,
+    headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token },
+  });
+  if (!res.ok) {
+    let msg = res.status + ' ' + res.statusText;
+    try {
+      const j = await res.json();
+      if (j.error && j.error.message) msg = j.error.message;
+    } catch (_) {}
+    throw new Error(msg);
+  }
+  return res;
+}
+
+async function connectOneDrive() {
+  if (!MS_CLIENT_ID || MS_CLIENT_ID.includes('PLACEHOLDER')) {
+    showToast('⚠ Add your MS_CLIENT_ID in config.js first', 4000); return;
+  }
+  const inst = await ensureMsal();
+  if (!inst) {
+    showToast('Microsoft sign-in library not loaded yet — check your connection and retry', 4000); return;
+  }
+  try {
+    const result = await inst.loginPopup({ scopes: GRAPH_SCOPES, prompt: 'select_account' });
+    msalAccount = result.account;
+    onOneDriveConnected();
+  } catch (e) {
+    if (e && e.errorCode === 'user_cancelled') return;
+    showToast('Microsoft sign-in failed: ' + (e.message || e), 5000);
+  }
+}
+
+function onOneDriveConnected() {
+  oneDriveConnected = true;
+  document.getElementById('hdr-onedrive-connect').style.display = 'none';
+  document.getElementById('hdr-onedrive-open').style.display    = '';
+  document.getElementById('hdr-onedrive-signout').style.display = '';
+  if (!driveConnected && !oneDriveFileId) driveFileInfo.textContent = '☁ OneDrive (new)';
+  showToast('✓ Connected to OneDrive');
+}
+
+async function fetchOneDriveFiles(query = '') {
+  try {
+    // Graph has no name-suffix filter, so search then filter client-side.
+    const q = (query || '.md').replace(/'/g, "''");
+    const res = await graphFetch(
+      `/me/drive/root/search(q='${encodeURIComponent(q)}')?$top=50&$select=id,name,lastModifiedDateTime,file`
+    );
+    const items = (await res.json()).value || [];
+    return items
+      .filter(f => f.file && /\.(md|markdown|txt)$/i.test(f.name))
+      .map(f => ({ id: f.id, name: f.name, modifiedTime: f.lastModifiedDateTime }))
+      .sort((a, b) => new Date(b.modifiedTime) - new Date(a.modifiedTime));
+  } catch (e) {
+    showToast('Could not load OneDrive files: ' + e.message);
+    return [];
+  }
+}
+
+async function loadOneDriveFile(fileId, fileName) {
+  try {
+    const res = await graphFetch(`/me/drive/items/${fileId}/content`);
+    editor.value     = await res.text();
+    oneDriveFileId   = fileId;
+    oneDriveFileName = fileName;
+    driveFileId      = null;
+    driveFileName    = null;
+    setTitle(fileName);
+    isDirty = false;
+    saveStatus.textContent    = 'Opened from OneDrive';
+    driveFileInfo.textContent = '☁ OneDrive';
+    renderPreview(); updateStats(); updateCursor(); updateLineNumbers();
+    showToast('✓ Opened ' + fileName);
+  } catch (e) {
+    showToast('Could not open file: ' + e.message);
+  }
+}
+
+async function saveToOneDrive(content, silent = false) {
+  try {
+    saveStatus.textContent = 'Saving…';
+    // Existing files are addressed by id; new files by path under the drive root.
+    const path = oneDriveFileId
+      ? `/me/drive/items/${oneDriveFileId}/content`
+      : `/me/drive/root:/${encodeURIComponent(oneDriveFileName || currentTitle)}:/content`;
+    const res  = await graphFetch(path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/markdown' },
+      body: content,
+    });
+    const item = await res.json();
+    oneDriveFileId   = item.id;
+    oneDriveFileName = item.name;
+    isDirty = false;
+    saveStatus.textContent    = silent ? `Saved ${new Date().toLocaleTimeString()}` : 'Saved to OneDrive';
+    driveFileInfo.textContent = '☁ OneDrive';
+    if (!silent) showToast('✓ Saved to OneDrive');
+  } catch (e) {
+    saveStatus.textContent = 'Save failed';
+    showToast('OneDrive save failed: ' + e.message);
+  }
+}
+
+document.getElementById('hdr-onedrive-connect').addEventListener('click', () => {
+  document.getElementById('hdr-more-menu').classList.remove('open');
+  connectOneDrive();
+});
+
+document.getElementById('hdr-onedrive-open').addEventListener('click', async () => {
+  document.getElementById('hdr-more-menu').classList.remove('open');
+  cloudPickerMode = 'onedrive';
+  document.getElementById('cloud-modal-title').textContent = '📂 Open from OneDrive';
+  document.getElementById('drive-file-list').innerHTML =
+    '<div class="file-item" style="color:var(--text2);cursor:default">Loading files…</div>';
+  document.getElementById('drive-search').value = '';
+  selectedDriveFile = null;
+  document.getElementById('drive-modal').classList.add('open');
+  renderDriveFileList(await fetchOneDriveFiles());
+});
+
+document.getElementById('hdr-onedrive-signout').addEventListener('click', async () => {
+  document.getElementById('hdr-more-menu').classList.remove('open');
+  try { if (msalInstance) await msalInstance.clearCache({ account: msalAccount }); } catch (_) {}
+  msalAccount       = null;
+  oneDriveConnected = false;
+  oneDriveFileId    = null;
+  oneDriveFileName  = null;
+  document.getElementById('hdr-onedrive-connect').style.display = '';
+  document.getElementById('hdr-onedrive-open').style.display    = 'none';
+  document.getElementById('hdr-onedrive-signout').style.display = 'none';
+  if (!driveConnected) driveFileInfo.textContent = '';
+  showToast('Signed out of OneDrive');
+});
+
+// Initialize MSAL eagerly so the sign-in popup opens synchronously on click,
+// and restore the session if this tab already signed in (sessionStorage cache).
+if (MS_CLIENT_ID && !MS_CLIENT_ID.includes('PLACEHOLDER')) {
+  ensureMsal().then(inst => {
+    if (!inst) return;
+    const accounts = inst.getAllAccounts();
+    if (accounts.length) {
+      msalAccount = accounts[0];
+      onOneDriveConnected();
+    }
+  }).catch(console.error);
 }
 
 // ── List continuation ─────────────────────────────────────────────────────────
@@ -1191,6 +1400,9 @@ async function localOpen() {
       const file = await handle.getFile();
       editor.value = await file.text();
       setTitle(file.name);
+      // Detach any open cloud file so auto-save can't overwrite it with local content
+      driveFileId = null;    driveFileName    = null;
+      oneDriveFileId = null; oneDriveFileName = null;
       isDirty = false;
       renderPreview(); updateStats(); updateLineNumbers();
       showToast(`Opened "${file.name}"`);
@@ -1239,6 +1451,8 @@ document.getElementById('local-file-input').addEventListener('change', async (e)
   editor.value = await file.text();
   setTitle(file.name);
   localFileHandle = null;
+  driveFileId = null;    driveFileName    = null;
+  oneDriveFileId = null; oneDriveFileName = null;
   isDirty = false;
   renderPreview(); updateStats(); updateLineNumbers();
   showToast(`Opened "${file.name}"`);

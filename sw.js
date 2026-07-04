@@ -1,4 +1,4 @@
-const CACHE = 'md-editor-v6';
+const CACHE = 'md-editor-v7';
 const ASSETS = [
   '/',
   '/index.html',
@@ -10,6 +10,7 @@ const ASSETS = [
   'https://cdn.jsdelivr.net/npm/turndown@7.2.0/dist/turndown.js',
   'https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/highlight.min.js',
   'https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/styles/github.min.css',
+  'https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.30.0/lib/msal-browser.min.js',
 ];
 
 self.addEventListener('install', (e) => {
@@ -34,10 +35,15 @@ const CACHEABLE_ORIGINS = [
 ];
 
 self.addEventListener('fetch', (e) => {
-  // Don't intercept Google API calls
+  // Don't intercept Google or Microsoft API calls
   if (e.request.url.includes('googleapis.com') ||
       e.request.url.includes('accounts.google.com') ||
-      e.request.url.includes('apis.google.com')) {
+      e.request.url.includes('apis.google.com') ||
+      e.request.url.includes('login.microsoftonline.com') ||
+      e.request.url.includes('graph.microsoft.com') ||
+      e.request.url.includes('sharepoint.com') ||
+      e.request.url.includes('1drv.com') ||
+      e.request.url.includes('microsoftpersonalcontent.com')) {
     return;
   }
 

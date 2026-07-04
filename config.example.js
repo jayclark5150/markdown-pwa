@@ -45,6 +45,12 @@ window.APP_CONFIG = {
   // - HTTP referrer: https://yourdomain.com/* and http://localhost:8000/*
   // - API: Google Drive API only
   GOOGLE_API_KEY: 'PLACEHOLDER_API_KEY',
+
+  // Microsoft Entra Application (client) ID - obtained from entra.microsoft.com
+  // App registrations → your app → Overview. Used for OneDrive sync via
+  // Microsoft Graph. This is a public identifier for a browser (SPA) client;
+  // no client secret is used or needed.
+  MS_CLIENT_ID: 'PLACEHOLDER_MS_CLIENT_ID',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

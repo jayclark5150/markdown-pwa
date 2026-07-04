@@ -71,6 +71,14 @@ Remember to add your Pages URL to the key's referrer restrictions and to your OA
 - **Fixed manifest paths** — `start_url` and shortcuts corrected for GitHub Pages subpath
 - **Service worker** — added `styles.css` to pre-cache, bumped cache version
 
+### v2.0.0
+
+- **OneDrive sync** — sign in with a Microsoft account (work/school or personal) and open/save markdown files in OneDrive via Microsoft Graph. Auth uses MSAL.js (SPA + PKCE, no client secret); tokens are session-only
+- **Menu reorganization** — the "..." menu now groups actions by destination: local disk, Google Drive, then OneDrive
+- **Clearer labels** — "Open" → "Open from Drive", "Share / Export" → "Save to Drive"
+- **Safety fix** — opening a local file now detaches any open cloud file so auto-save can't overwrite it
+- **Config** — new `MS_CLIENT_ID` value in `config.js` / `MS_CLIENT_ID` repository secret for deployment
+
 ## Browser support
 
 | Browser | Open local | Save local | Drive |

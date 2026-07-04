@@ -26,16 +26,19 @@ jobs:
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
         run: |
           python3 - <<'PYEOF'
           import os, json
-          client_id = os.environ["GOOGLE_CLIENT_ID"]
-          api_key   = os.environ["GOOGLE_API_KEY"]
+          client_id    = os.environ["GOOGLE_CLIENT_ID"]
+          api_key      = os.environ["GOOGLE_API_KEY"]
+          ms_client_id = os.environ.get("MS_CLIENT_ID", "")
           config = (
             "// Generated at deploy time from GitHub Actions secrets.\n"
             "window.APP_CONFIG = {\n"
             f"  GOOGLE_CLIENT_ID: {json.dumps(client_id)},\n"
             f"  GOOGLE_API_KEY:   {json.dumps(api_key)},\n"
+            f"  MS_CLIENT_ID:     {json.dumps(ms_client_id)},\n"
             "};\n"
           )
           with open("config.js", "w") as f:
