@@ -79,6 +79,12 @@ Remember to add your Pages URL to the key's referrer restrictions and to your OA
 - **Safety fix** — opening a local file now detaches any open cloud file so auto-save can't overwrite it
 - **Config** — new `MS_CLIENT_ID` value in `config.js` / `MS_CLIENT_ID` repository secret for deployment
 
+### v2.1.0
+
+- **Unified file menu** — Disk, Google Drive, and OneDrive now expose the same core actions in the same order: Open, Save, Save As, Rename
+- **Disk Save As / Rename** — replaces "Download .md"; Save As prompts a fresh file location, Rename renames on disk via `FileSystemFileHandle.move()` where supported (falls back to renaming the working document)
+- **OneDrive Save / Save As / Rename** — added to the menu, backed by Microsoft Graph (`PUT` for Save As, `PATCH` for Rename), shown/hidden with connection state to match Drive
+
 ## Browser support
 
 | Browser | Open local | Save local | Drive |
