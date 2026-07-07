@@ -775,6 +775,9 @@ function onOneDriveConnected() {
   oneDriveConnected = true;
   document.getElementById('hdr-onedrive-connect').style.display = 'none';
   document.getElementById('hdr-onedrive-open').style.display    = '';
+  document.getElementById('hdr-onedrive-save').style.display    = '';
+  document.getElementById('hdr-onedrive-saveas').style.display  = '';
+  document.getElementById('hdr-onedrive-rename').style.display  = '';
   document.getElementById('hdr-onedrive-signout').style.display = '';
   if (!driveConnected && !oneDriveFileId) driveFileInfo.textContent = '☁ OneDrive (new)';
   showToast('✓ Connected to OneDrive');
@@ -814,6 +817,54 @@ async function loadOneDriveFile(fileId, fileName) {
     showToast('✓ Opened ' + fileName);
   } catch (e) {
     showToast('Could not open file: ' + e.message);
+  }
+}
+
+async function saveAsToOneDrive(newName) {
+  if (!editor.value) { showToast('Nothing to save'); return; }
+  try {
+    saveStatus.textContent = 'Saving as…';
+    const res  = await graphFetch(`/me/drive/root:/${encodeURIComponent(newName)}:/content`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/markdown' },
+      body: editor.value,
+    });
+    const item = await res.json();
+    oneDriveFileId   = item.id;
+    oneDriveFileName = item.name;
+    driveFileId      = null;
+    driveFileName    = null;
+    currentTitle     = item.name;
+    tbTitle.textContent = item.name;
+    isDirty = false;
+    saveStatus.textContent    = 'Saved to OneDrive';
+    driveFileInfo.textContent = `☁ ${item.name}`;
+    showToast(`✓ Saved as "${item.name}" to OneDrive`);
+  } catch (e) {
+    saveStatus.textContent = 'Save As failed';
+    showToast('OneDrive Save As failed: ' + e.message);
+  }
+}
+
+async function renameOneDriveFile(newName) {
+  if (!oneDriveFileId) { showToast('No OneDrive file open'); return; }
+  try {
+    saveStatus.textContent = 'Renaming…';
+    const res  = await graphFetch(`/me/drive/items/${oneDriveFileId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName }),
+    });
+    const item = await res.json();
+    oneDriveFileName = item.name;
+    currentTitle     = item.name;
+    tbTitle.textContent = item.name;
+    saveStatus.textContent    = '';
+    driveFileInfo.textContent = `☁ ${item.name}`;
+    showToast(`✓ File renamed to "${item.name}"`);
+  } catch (e) {
+    saveStatus.textContent = 'Rename failed';
+    showToast('OneDrive rename failed: ' + e.message);
   }
 }
 
@@ -859,6 +910,46 @@ document.getElementById('hdr-onedrive-open').addEventListener('click', async () 
   renderDriveFileList(await fetchOneDriveFiles());
 });
 
+document.getElementById('hdr-onedrive-save').addEventListener('click', () => {
+  document.getElementById('hdr-more-menu').classList.remove('open');
+  saveToOneDrive(editor.value, false);
+});
+
+document.getElementById('hdr-onedrive-saveas').addEventListener('click', () => {
+  document.getElementById('hdr-more-menu').classList.remove('open');
+  document.getElementById('drive-action-title').textContent = 'Save As to OneDrive';
+  document.getElementById('drive-action-input').value = oneDriveFileName || currentTitle;
+  document.getElementById('drive-action-input').placeholder = 'New filename';
+  document.getElementById('drive-action-modal').classList.add('open');
+  document.getElementById('drive-action-input').focus();
+
+  document.getElementById('drive-action-confirm').onclick = async () => {
+    const newName = document.getElementById('drive-action-input').value.trim();
+    if (!newName) { showToast('Please enter a filename'); return; }
+    const filename = newName.endsWith('.md') ? newName : `${newName}.md`;
+    document.getElementById('drive-action-modal').classList.remove('open');
+    await saveAsToOneDrive(filename);
+  };
+});
+
+document.getElementById('hdr-onedrive-rename').addEventListener('click', () => {
+  document.getElementById('hdr-more-menu').classList.remove('open');
+  if (!oneDriveFileId) { showToast('No OneDrive file open'); return; }
+  document.getElementById('drive-action-title').textContent = 'Rename OneDrive File';
+  document.getElementById('drive-action-input').value = oneDriveFileName || currentTitle;
+  document.getElementById('drive-action-input').placeholder = 'New filename';
+  document.getElementById('drive-action-modal').classList.add('open');
+  document.getElementById('drive-action-input').focus();
+
+  document.getElementById('drive-action-confirm').onclick = async () => {
+    const newName = document.getElementById('drive-action-input').value.trim();
+    if (!newName) { showToast('Please enter a filename'); return; }
+    const filename = newName.endsWith('.md') ? newName : `${newName}.md`;
+    document.getElementById('drive-action-modal').classList.remove('open');
+    await renameOneDriveFile(filename);
+  };
+});
+
 document.getElementById('hdr-onedrive-signout').addEventListener('click', async () => {
   document.getElementById('hdr-more-menu').classList.remove('open');
   try { if (msalInstance) await msalInstance.clearCache({ account: msalAccount }); } catch (_) {}
@@ -868,6 +959,9 @@ document.getElementById('hdr-onedrive-signout').addEventListener('click', async 
   oneDriveFileName  = null;
   document.getElementById('hdr-onedrive-connect').style.display = '';
   document.getElementById('hdr-onedrive-open').style.display    = 'none';
+  document.getElementById('hdr-onedrive-save').style.display    = 'none';
+  document.getElementById('hdr-onedrive-saveas').style.display  = 'none';
+  document.getElementById('hdr-onedrive-rename').style.display  = 'none';
   document.getElementById('hdr-onedrive-signout').style.display = 'none';
   if (!driveConnected) driveFileInfo.textContent = '';
   showToast('Signed out of OneDrive');
@@ -1444,6 +1538,61 @@ function localDownload() {
   showToast(`Downloaded "${a.download}"`);
 }
 
+// Save As — always prompt for a new file location, then track that handle
+async function localSaveAs() {
+  if (!editor.value) { showToast('Nothing to save'); return; }
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: currentTitle || 'untitled.md',
+        types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }]
+      });
+      localFileHandle = handle;
+      const writable = await handle.createWritable();
+      await writable.write(editor.value);
+      await writable.close();
+      setTitle(handle.name);
+      // Detach any open cloud file so auto-save targets the new local copy
+      driveFileId = null;    driveFileName    = null;
+      oneDriveFileId = null; oneDriveFileName = null;
+      isDirty = false;
+      saveStatus.textContent = 'Saved';
+      showToast(`Saved "${handle.name}"`);
+    } catch (e) { if (e.name !== 'AbortError') showToast('Save failed'); }
+  } else {
+    localDownload();
+  }
+}
+
+// Rename — reuse the shared action modal, mirroring Drive/OneDrive rename UX
+function localRename() {
+  document.getElementById('drive-action-title').textContent = 'Rename File';
+  const input = document.getElementById('drive-action-input');
+  input.value = currentTitle;
+  input.placeholder = 'New filename';
+  document.getElementById('drive-action-modal').classList.add('open');
+  input.focus(); input.select();
+
+  document.getElementById('drive-action-confirm').onclick = async () => {
+    let newName = input.value.trim();
+    if (!newName) return;
+    if (!newName.endsWith('.md') && !newName.endsWith('.txt')) newName += '.md';
+    try {
+      // Rename the on-disk file where supported (Chromium 111+); otherwise
+      // fall back to renaming the working document.
+      if (localFileHandle && typeof localFileHandle.move === 'function') {
+        await localFileHandle.move(newName);
+      }
+      setTitle(newName);
+      showToast(`Renamed to "${newName}"`);
+    } catch (e) {
+      setTitle(newName);
+      showToast(`Renamed to "${newName}"`);
+    }
+    document.getElementById('drive-action-modal').classList.remove('open');
+  };
+}
+
 // File input fallback (Safari/Firefox open)
 document.getElementById('local-file-input').addEventListener('change', async (e) => {
   const file = e.target.files[0];
@@ -1467,8 +1616,12 @@ document.getElementById('hdr-local-save').addEventListener('click', () => {
   localSave();
   document.getElementById('hdr-more-menu').classList.remove('open');
 });
-document.getElementById('hdr-local-download').addEventListener('click', () => {
-  localDownload();
+document.getElementById('hdr-local-saveas').addEventListener('click', () => {
+  localSaveAs();
+  document.getElementById('hdr-more-menu').classList.remove('open');
+});
+document.getElementById('hdr-local-rename').addEventListener('click', () => {
+  localRename();
   document.getElementById('hdr-more-menu').classList.remove('open');
 });
 
