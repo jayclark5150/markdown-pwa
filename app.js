@@ -348,6 +348,9 @@ function onDriveConnected() {
   document.getElementById('drive-open-btn').style.display    = '';
   document.getElementById('drive-save-btn').style.display    = '';
   document.getElementById('drive-signout-btn').style.display = '';
+  // Header dropdown: hide "Connect", reveal "Sign out" (mirrors OneDrive)
+  document.getElementById('hdr-drive-connect').style.display  = 'none';
+  document.getElementById('hdr-drive-signout').style.display  = '';
   if (!driveFileId) driveFileInfo.textContent = '☁ Drive (new)';
   showToast('✓ Connected to Google Drive');
   fetchDriveFiles();
@@ -377,6 +380,9 @@ document.getElementById('drive-signout-btn').addEventListener('click', () => {
   document.getElementById('drive-open-btn').style.display    = 'none';
   document.getElementById('drive-save-btn').style.display    = 'none';
   document.getElementById('drive-signout-btn').style.display = 'none';
+  // Header dropdown: restore "Connect", hide "Sign out"
+  document.getElementById('hdr-drive-connect').style.display  = '';
+  document.getElementById('hdr-drive-signout').style.display  = 'none';
   driveFileInfo.textContent = '';
   showToast('Signed out of Google Drive');
 });

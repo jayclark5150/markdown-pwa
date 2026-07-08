@@ -85,6 +85,10 @@ Remember to add your Pages URL to the key's referrer restrictions and to your OA
 - **Disk Save As / Rename** — replaces "Download .md"; Save As prompts a fresh file location, Rename renames on disk via `FileSystemFileHandle.move()` where supported (falls back to renaming the working document)
 - **OneDrive Save / Save As / Rename** — added to the menu, backed by Microsoft Graph (`PUT` for Save As, `PATCH` for Rename), shown/hidden with connection state to match Drive
 
+### v2.1.1
+
+- **Google Drive menu state** — "Connect Google Drive" now hides once connected and "Sign out of Drive" hides until connected, matching OneDrive's behavior
+
 ## Browser support
 
 | Browser | Open local | Save local | Drive |
