@@ -93,6 +93,10 @@ Remember to add your Pages URL to the key's referrer restrictions and to your OA
 
 - **Google Drive menu parity with OneDrive** — when Drive is disconnected, the menu now shows only "Connect Google Drive"; Open, Save, Save As, and Rename stay hidden until a Drive connection is established, then "Sign out of Drive" appears as the disconnect action
 
+### v2.1.3
+
+- **Copy button on code blocks** — every fenced code block in the preview pane now has a copy icon in the top-right corner; click to copy the raw code to the clipboard, with a checkmark flash for confirmation
+
 ## Browser support
 
 | Browser | Open local | Save local | Drive |

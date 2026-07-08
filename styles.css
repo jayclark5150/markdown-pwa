@@ -522,6 +522,19 @@ body {
 #preview-pane code { background: #f0f0f0; color: #c0392b; padding: 2px 6px; border-radius: 4px; font-family: 'Cascadia Code', monospace; font-size: .9em; }
 #preview-pane pre { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin-bottom: 1em; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
 #preview-pane pre code { background: none; color: inherit; padding: 0; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
+
+/* Copy button on fenced code blocks */
+.code-block { position: relative; }
+.copy-code-btn {
+  position: absolute; top: 10px; right: 10px;
+  width: 26px; height: 26px; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg2); border: 1px solid var(--border); color: var(--text2);
+  cursor: pointer; opacity: .7; transition: opacity .15s, background .15s, color .15s;
+}
+.code-block:hover .copy-code-btn { opacity: 1; }
+.copy-code-btn:hover  { background: var(--bg3); color: var(--text); }
+.copy-code-btn.copied { opacity: 1; color: var(--green); border-color: var(--green); }
 #preview-pane blockquote { border-left: 3px solid var(--accent); color: var(--text2); padding: 4px 16px; margin: 0 0 1em; }
 #preview-pane table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
 #preview-pane th,td { border: 1px solid var(--border); padding: 8px 12px; }

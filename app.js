@@ -123,9 +123,63 @@ function renderPreview() {
   if (window.marked && window.DOMPurify) {
     try {
       previewInner.innerHTML = DOMPurify.sanitize(marked.parse(editor.value || ''));
+      addCodeCopyButtons();
     } catch (e) {
       console.error('Preview render failed:', e);
     }
+  }
+}
+
+// ── Copy-to-clipboard button on fenced code blocks ────────────────────────────
+// Built via DOM APIs (not string concatenation into innerHTML) so this trusted
+// UI markup never has to pass through DOMPurify alongside untrusted content.
+const COPY_ICON_SVG  = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+const CHECK_ICON_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+function addCodeCopyButtons() {
+  previewInner.querySelectorAll('pre').forEach((pre) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'code-block';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-code-btn';
+    btn.setAttribute('aria-label', 'Copy code');
+    btn.title = 'Copy code';
+    btn.innerHTML = COPY_ICON_SVG;
+    wrap.appendChild(btn);
+  });
+}
+
+previewInner.addEventListener('click', (e) => {
+  const btn = e.target.closest('.copy-code-btn');
+  if (!btn) return;
+  const code = btn.parentElement.querySelector('code');
+  copyCodeBlock(code ? code.textContent : '', btn);
+});
+
+async function copyCodeBlock(text, btn) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    const original = btn.innerHTML;
+    btn.innerHTML = CHECK_ICON_SVG;
+    btn.classList.add('copied');
+    setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); }, 1400);
+  } catch (e) {
+    showToast('Copy failed');
   }
 }
 

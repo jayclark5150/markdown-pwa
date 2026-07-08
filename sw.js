@@ -1,4 +1,4 @@
-const CACHE = 'md-editor-v10';
+const CACHE = 'md-editor-v11';
 const ASSETS = [
   '/',
   '/index.html',
