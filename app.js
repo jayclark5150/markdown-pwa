@@ -348,8 +348,13 @@ function onDriveConnected() {
   document.getElementById('drive-open-btn').style.display    = '';
   document.getElementById('drive-save-btn').style.display    = '';
   document.getElementById('drive-signout-btn').style.display = '';
-  // Header dropdown: hide "Connect", reveal "Sign out" (mirrors OneDrive)
+  // Header dropdown: hide "Connect", reveal the file actions + "Sign out"
+  // so the menu reflects the connected state (mirrors OneDrive).
   document.getElementById('hdr-drive-connect').style.display  = 'none';
+  document.getElementById('hdr-open-mobile').style.display    = '';
+  document.getElementById('hdr-share-mobile').style.display   = '';
+  document.getElementById('hdr-drive-saveas').style.display   = '';
+  document.getElementById('hdr-drive-rename').style.display   = '';
   document.getElementById('hdr-drive-signout').style.display  = '';
   if (!driveFileId) driveFileInfo.textContent = '☁ Drive (new)';
   showToast('✓ Connected to Google Drive');
@@ -380,8 +385,12 @@ document.getElementById('drive-signout-btn').addEventListener('click', () => {
   document.getElementById('drive-open-btn').style.display    = 'none';
   document.getElementById('drive-save-btn').style.display    = 'none';
   document.getElementById('drive-signout-btn').style.display = 'none';
-  // Header dropdown: restore "Connect", hide "Sign out"
+  // Header dropdown: restore "Connect", hide the file actions + "Sign out"
   document.getElementById('hdr-drive-connect').style.display  = '';
+  document.getElementById('hdr-open-mobile').style.display    = 'none';
+  document.getElementById('hdr-share-mobile').style.display   = 'none';
+  document.getElementById('hdr-drive-saveas').style.display   = 'none';
+  document.getElementById('hdr-drive-rename').style.display   = 'none';
   document.getElementById('hdr-drive-signout').style.display  = 'none';
   driveFileInfo.textContent = '';
   showToast('Signed out of Google Drive');

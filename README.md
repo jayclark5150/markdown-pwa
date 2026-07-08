@@ -89,6 +89,10 @@ Remember to add your Pages URL to the key's referrer restrictions and to your OA
 
 - **Google Drive menu state** — "Connect Google Drive" now hides once connected and "Sign out of Drive" hides until connected, matching OneDrive's behavior
 
+### v2.1.2
+
+- **Google Drive menu parity with OneDrive** — when Drive is disconnected, the menu now shows only "Connect Google Drive"; Open, Save, Save As, and Rename stay hidden until a Drive connection is established, then "Sign out of Drive" appears as the disconnect action
+
 ## Browser support
 
 | Browser | Open local | Save local | Drive |
